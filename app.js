@@ -7,20 +7,24 @@
   const LIVE = Boolean(CFG.SUPABASE_URL && CFG.SUPABASE_ANON_KEY && window.supabase);
 
   const JARS = {
-    outside: { name: 'Outside', short: 'Outside', color: '#3fe0b0', hi: '#b8ffe9', deep: '#0b5e4c', vibes: ['chill', 'hiking', 'active', 'daytrip'] },
-    indoor:  { name: 'Indoor', short: 'Indoor', color: '#ffae42', hi: '#ffe2b0', deep: '#7a3c06', vibes: ['leisure', 'indoor-active'] },
-    home:    { name: 'Staying Home', short: 'Home', color: '#c060ff', hi: '#f0c8ff', deep: '#4b1580', vibes: ['cozy', 'culinary', 'projects'] },
+    // Colors from the Arcane palettes. `stops` is the liquid, top to bottom, banded like the character cards.
+    outside: { name: 'Outside', short: 'Outside', color: '#2fd39a', hi: '#6ff0de', deep: '#0d3b2c',
+      stops: ['#2fbf8a', '#6ff0de', '#d4fff6', '#0a8a40', '#0d3b2c'], vibes: ['chill', 'hiking', 'active', 'daytrip'] },
+    indoor:  { name: 'Indoor', short: 'Indoor', color: '#4f7bff', hi: '#a9c4ff', deep: '#18206e',
+      stops: ['#4a5fb5', '#8aa0ff', '#dce6ff', '#1f4fa0', '#18206e'], vibes: ['leisure', 'indoor-active'] },
+    home:    { name: 'Staying Home', short: 'Home', color: '#f47cf6', hi: '#ffc8fb', deep: '#3d1c45',
+      stops: ['#e8186f', '#f47cf6', '#ffdcfb', '#8a0030', '#3d1c45'], vibes: ['cozy', 'culinary', 'projects'] },
   };
   const VIBES = {
-    chill:           { name: 'Chill & relaxed', color: '#8fe3cf' },
-    hiking:          { name: 'Hiking', color: '#9ccf6e' },
-    active:          { name: 'Active', color: '#f2d35b' },
-    daytrip:         { name: 'Day trips', color: '#7cc0ff' },
-    leisure:         { name: 'Leisure & entertainment', color: '#ffc27a' },
-    'indoor-active': { name: 'Active & interactive', color: '#ff8a65' },
-    cozy:            { name: 'Chill & cozy', color: '#ffa6cf' },
-    culinary:        { name: 'Culinary', color: '#ffd98a' },
-    projects:        { name: 'Projects', color: '#c3a8ff' },
+    chill:           { name: 'Chill & relaxed', color: '#6ff0de' },
+    hiking:          { name: 'Hiking', color: '#3fbf6f' },
+    active:          { name: 'Active', color: '#ff4f8b' },
+    daytrip:         { name: 'Day trips', color: '#d9956a' },
+    leisure:         { name: 'Leisure & entertainment', color: '#8aa0ff' },
+    'indoor-active': { name: 'Active & interactive', color: '#a87bc4' },
+    cozy:            { name: 'Chill & cozy', color: '#f47cf6' },
+    culinary:        { name: 'Culinary', color: '#ffb48a' },
+    projects:        { name: 'Projects', color: '#c9a15a' },
   };
   // Where each vial hangs on the photo's string of lights (picture coordinates, 1500 x 1000).
   const VIAL_POS = { outside: { x: 600, wire: 30 }, indoor: { x: 750, wire: 62 }, home: { x: 900, wire: 38 } };
@@ -290,7 +294,8 @@
       <defs>
         <linearGradient id="${pfx}metal" x1="0" x2="1"><stop offset="0" stop-color="#1b1916"/><stop offset=".32" stop-color="#5d554a"/><stop offset=".55" stop-color="#2c2823"/><stop offset="1" stop-color="#121110"/></linearGradient>
         <linearGradient id="${pfx}brass" x1="0" x2="1"><stop offset="0" stop-color="#5a421d"/><stop offset=".38" stop-color="#f1d79a"/><stop offset=".68" stop-color="#b38a44"/><stop offset="1" stop-color="#4d3818"/></linearGradient>
-        <linearGradient id="${pfx}liq" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${J.hi}"/><stop offset=".45" stop-color="${J.color}"/><stop offset="1" stop-color="${J.deep}"/></linearGradient>
+        <linearGradient id="${pfx}liq" x1="0" y1="0" x2="0" y2="1">${J.stops.map((c, n) => `<stop offset="${(n / (J.stops.length - 1)).toFixed(3)}" stop-color="${c}"/>`).join('')}</linearGradient>
+        <linearGradient id="${pfx}side" x1="0" x2="1"><stop offset="0" stop-color="#000" stop-opacity=".35"/><stop offset=".3" stop-color="#000" stop-opacity="0"/><stop offset=".75" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".4"/></linearGradient>
         <linearGradient id="${pfx}shim" x1="0" y1="0" x2="0" y2="1" spreadMethod="reflect" gradientUnits="objectBoundingBox">
           <stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".5" stop-color="#fff" stop-opacity=".55"/><stop offset="1" stop-color="#fff" stop-opacity="0"/>
           <animateTransform attributeName="gradientTransform" type="translate" values="0 -1;0 1" dur="${(4 + Math.random() * 2).toFixed(2)}s" repeatCount="indefinite"/>
@@ -305,8 +310,10 @@
       <rect x="-24" y="49" width="48" height="4" rx="2" fill="${B}"/><rect x="-23" y="55" width="46" height="4" rx="2" fill="${B}"/>
       <rect class="vial-glass" x="-22" y="61" width="44" height="105" rx="7" fill="rgba(18,16,40,.82)" stroke="rgba(255,255,255,.14)"/>
       <g clip-path="url(#${pfx}clip)">
-        <rect x="-19" y="64" width="38" height="100" fill="url(#${pfx}liq)"/>
-        <rect x="-19" y="64" width="38" height="100" fill="url(#${pfx}shim)" opacity=".55"/>
+        <rect id="${pfx}liquid" x="-19" y="66" width="38" height="96" fill="url(#${pfx}liq)"/>
+        <rect x="-19" y="64" width="38" height="100" fill="url(#${pfx}side)"/>
+        <rect x="-19" y="64" width="38" height="100" fill="url(#${pfx}shim)" opacity=".28"/>
+        <rect id="${pfx}surface" x="-19" y="66" width="38" height="2.4" fill="${J.stops[2]}" opacity=".85"/>
         <circle cx="-8" cy="160" r="2.2" fill="${J.hi}"><animate attributeName="cy" values="162;70" dur="3.4s" repeatCount="indefinite"/><animate attributeName="opacity" values="0;.9;0" dur="3.4s" repeatCount="indefinite"/></circle>
         <circle cx="7" cy="160" r="1.6" fill="${J.hi}"><animate attributeName="cy" values="162;75" dur="4.6s" begin="1.2s" repeatCount="indefinite"/><animate attributeName="opacity" values="0;.8;0" dur="4.6s" begin="1.2s" repeatCount="indefinite"/></circle>
         <circle cx="12" cy="160" r="1.3" fill="#fff"><animate attributeName="cy" values="162;80" dur="2.8s" begin=".6s" repeatCount="indefinite"/><animate attributeName="opacity" values="0;.7;0" dur="2.8s" begin=".6s" repeatCount="indefinite"/></circle>
@@ -324,7 +331,12 @@
     const r = document.getElementById(pfx + 'level'); if (!r) return;
     const lvl = count ? Math.max(0.2, Math.min(1, count / 12)) : 0.06;
     const h = 96 * lvl;
-    r.setAttribute('y', String(66 + 96 - h)); r.setAttribute('height', String(h));
+    const y = String(66 + 96 - h);
+    r.setAttribute('y', y); r.setAttribute('height', String(h));
+    // Stretch the banded gradient over the liquid that shows, so every color band stays visible.
+    const liq = document.getElementById(pfx + 'liquid');
+    if (liq) { liq.setAttribute('y', y); liq.setAttribute('height', String(h)); }
+    document.getElementById(pfx + 'surface')?.setAttribute('y', y);
   }
 
   function buildVials() {
