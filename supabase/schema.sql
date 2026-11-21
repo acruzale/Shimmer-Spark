@@ -50,6 +50,14 @@ alter table public.spaces  enable row level security;
 alter table public.members enable row level security;
 alter table public.ideas   enable row level security;
 
+-- Newer Supabase projects don't expose SQL-created tables automatically. Signed-in people get table
+-- access here; the policies below still limit them to their own vials. Signed-out visitors get none.
+grant usage on schema public to authenticated;
+grant select on public.spaces to authenticated;
+grant select, update on public.members to authenticated;
+grant select, insert, update, delete on public.ideas to authenticated;
+revoke all on public.spaces, public.members, public.ideas from anon;
+
 drop policy if exists "members read space" on public.spaces;
 create policy "members read space" on public.spaces
   for select to authenticated using (public.is_member(id));
