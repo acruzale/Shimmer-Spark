@@ -1,5 +1,5 @@
 // Keeps the app shell available offline. Bump VERSION after changing files.
-const VERSION = 'shimmer-spark-v5';
+const VERSION = 'shimmer-spark-v6';
 const SHELL = ['./', 'index.html', 'styles.css', 'app.js', 'config.js', 'manifest.webmanifest', 'assets/home.jpg', 'assets/icon-192.png'];
 
 self.addEventListener('install', (e) => {

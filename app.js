@@ -26,6 +26,9 @@
     culinary:        { name: 'Culinary', color: '#ffb48a' },
     projects:        { name: 'Projects', color: '#c9a15a' },
   };
+  // Banner pictures live in assets/vibes/<vibe>.jpg (and <jar>.jpg for "Any vibe"). Missing ones are skipped.
+  // VIBE_FOCUS picks which part of a picture stays in view when it is cropped to the banner.
+  const VIBE_FOCUS = { chill: '50% 50%' };
   // Where each vial hangs on the photo's string of lights (picture coordinates, 1500 x 1000).
   const VIAL_POS = { outside: { x: 600, wire: 30 }, indoor: { x: 750, wire: 62 }, home: { x: 900, wire: 38 } };
   const stringY = (x) => 75 + (x - 600) * 0.173; // traced from the photo's light string between x 600 and 900
@@ -606,8 +609,11 @@
     const res = a.resultId && store.ideas.find((i) => i.id === a.resultId);
     const vibes = [['any', 'Any vibe', J.color], ...J.vibes.map((v) => [v, VIBES[v].name, VIBES[v].color])];
     body.innerHTML = `
-      <h2 class="sheet-title" style="color:${J.hi}">${esc(J.name)}</h2>
-      <p class="sheet-sub">What's the vibe tonight?</p>
+      <div class="vibe-banner" style="--c:${J.color}">
+        <img src="assets/vibes/${a.vibe === 'any' ? a.jar : a.vibe}.jpg" alt="" style="object-position:${VIBE_FOCUS[a.vibe] || '50% 50%'}" onerror="this.remove()">
+        <h2 class="sheet-title" style="color:${J.hi}">${esc(J.name)}</h2>
+        <p class="sheet-sub">${a.vibe === 'any' ? "What's the vibe tonight?" : esc(VIBES[a.vibe].name)}</p>
+      </div>
       <div class="chips">${vibes.map(([k, n, c]) => `<button class="chip${k === 'any' ? ' plain' : ''}" style="--c:${c}" data-vibe="${k}" aria-pressed="${a.vibe === k}">${esc(n)}</button>`).join('')}</div>
       <label class="toggle-row"><input type="checkbox" id="drawBoth" ${a.bothOnly ? 'checked' : ''}> Only ones we're both into</label>
       <div class="draw-stage">
