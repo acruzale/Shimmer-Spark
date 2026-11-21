@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Shimmer &amp; Spark</title>
+  <meta name="description" content="Our date ideas, sorted into glowing vials.">
+  <meta name="theme-color" content="#0b1513">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Shimmer &amp; Spark">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="assets/icon-192.png">
+  <link rel="apple-touch-icon" href="assets/icon-180.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Federo&family=Josefin+Sans:wght@400;600;700&display=swap">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="scene" id="scene" aria-hidden="false">
+    <img class="scene-img" src="assets/home.jpg" alt="Two people sitting on a rooftop ledge at night, looking over the city under string lights">
+    <canvas class="fireflies" id="fireflies" aria-hidden="true"></canvas>
+    <svg class="vials" id="vials" viewBox="0 0 1500 1000" preserveAspectRatio="xMidYMid slice" role="group" aria-label="Date idea vials"></svg>
+  </div>
+
+  <div class="demo-chip" id="demoChip" hidden>Demo mode · saved in this browser only</div>
+
+  <section class="home-copy" id="homeCopy">
+    <div class="today" id="today" hidden></div>
+    <p class="eyebrow">Welcome to</p>
+    <h1 class="brand">Shimmer <span class="amp">&amp;</span> Spark</h1>
+    <p class="tagline" id="tagline">Select a vial to ignite the night</p>
+  </section>
+
+  <section class="panel" id="panel-ideas" hidden aria-labelledby="ideasTitle"></section>
+  <section class="panel" id="panel-plans" hidden aria-labelledby="plansTitle"></section>
+  <section class="panel" id="panel-us" hidden aria-labelledby="usTitle"></section>
+
+  <nav class="dock" aria-label="Main">
+    <button class="dock-btn" data-view="home" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11 12 4l8 7v9h-5v-6H9v6H4z"/></svg><span>Vials</span></button>
+    <button class="dock-btn" data-view="ideas"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h14M5 12h14M5 19h9"/></svg><span>Ideas</span></button>
+    <button class="dock-add" id="addBtn" aria-label="Add a date idea"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
+    <button class="dock-btn" data-view="plans"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg><span>Plans</span></button>
+    <button class="dock-btn" data-view="us"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="9" r="3.2"/><circle cx="16" cy="10" r="2.6"/><path d="M3.5 19c.8-3.2 3-5 5.5-5s4.7 1.8 5.5 5M14 14.6c2.6-.4 5 1.2 6 4.4"/></svg><span>Us</span></button>
+  </nav>
+
+  <div class="sheet-backdrop" id="sheetBackdrop" hidden></div>
+  <div class="sheet" id="sheet" role="dialog" aria-modal="true" hidden>
+    <div class="sheet-grip" aria-hidden="true"></div>
+    <button class="sheet-close" id="sheetClose" aria-label="Close">×</button>
+    <div class="sheet-body" id="sheetBody"></div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

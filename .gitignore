@@ -1,0 +1,9 @@
+# Never publish: Google sign-in secret and local tool settings
+ClientGoogleOAuth.json
+client_secret*.json
+*.secret.json
+.claude/
+.env*
+
+# Spare copy of the home picture (the app uses assets/home.jpg)
+powderandekko.jpg
