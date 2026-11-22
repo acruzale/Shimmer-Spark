@@ -30,9 +30,9 @@
   // VIBE_FOCUS picks which part of a picture stays in view when it is cropped to the banner.
   // VIBE_LIFT brightens pictures that are too dark under the banner's fade.
   // Bump PICS_VERSION whenever a picture file is replaced, so phones load the new one.
-  const PICS_VERSION = 6;
+  const PICS_VERSION = 7;
   const VIBE_LIFT = { cozy: 1.6, 'plans-ending': 1.35 };
-  const VIBE_FOCUS = { chill: '50% 50%', hiking: '42% 55%', active: '55% 50%', daytrip: '47% 100%', leisure: '55% 30%', 'indoor-active': '50% 40%', cozy: '62% 50%', culinary: '62% 40%', projects: '50% 35%', outside: '42% 45%', indoor: '50% 45%', home: '48% 30%', 'plans-ending': '50% 30%', 'plans-both': '50% 40%', 'plans-theirs': '50% 40%', 'plans-waiting': '50% 45%', 'plans-memories': '50% 40%', us: '45% 40%' };
+  const VIBE_FOCUS = { chill: '50% 50%', hiking: '42% 55%', active: '55% 50%', daytrip: '47% 100%', leisure: '55% 30%', 'indoor-active': '50% 40%', cozy: '62% 50%', culinary: '62% 40%', projects: '50% 35%', outside: '42% 45%', indoor: '50% 45%', home: '48% 30%', 'plans-ending': '50% 30%', 'plans-both': '50% 40%', 'plans-theirs': '50% 40%', 'plans-waiting': '50% 45%', 'plans-memories': '50% 40%', us: '45% 40%', all: '62% 35%' };
   // Where each vial hangs on the photo's string of lights (picture coordinates, 1500 x 1000).
   const VIAL_POS = { outside: { x: 600, wire: 30 }, indoor: { x: 750, wire: 62 }, home: { x: 900, wire: 38 } };
   const stringY = (x) => 75 + (x - 600) * 0.173; // traced from the photo's light string between x 600 and 900
@@ -156,6 +156,7 @@
     async add(f) { const idea = blankIdea(f, this.meId); this.data.ideas.unshift(idea); this.emit(); return idea; }
     async update(id, patch) { Object.assign(this.find(id) || {}, patch); this.emit(); }
     async remove(id) { this.data.ideas = this.data.ideas.filter((i) => i.id !== id); this.emit(); }
+    async removeMany(ids) { const gone = new Set(ids); this.data.ideas = this.data.ideas.filter((i) => !gone.has(i.id)); this.emit(); }
     async setInterest(id, on) {
       const i = this.find(id); if (!i) return;
       const s = new Set(i.interested); on ? s.add(this.meId) : s.delete(this.meId);
@@ -263,6 +264,11 @@
       const { error } = await this.sb.from('ideas').delete().eq('id', id);
       if (error) throw error;
       this.ideas = this.ideas.filter((x) => x.id !== id); this.emit();
+    }
+    async removeMany(ids) {
+      const { error } = await this.sb.from('ideas').delete().in('id', ids);
+      if (error) throw error;
+      const gone = new Set(ids); this.ideas = this.ideas.filter((x) => !gone.has(x.id)); this.emit();
     }
     async setInterest(id, on) {
       const { data, error } = await this.sb.rpc('set_interest', { p_idea: id, p_on: on });
@@ -824,18 +830,102 @@
     mountCardTop(body);
   }
 
+  // The vial card's tabs: All, then the three vials. All lists every idea (past dates stay in Plans).
+  const ALL_VIAL = { name: 'All ideas', short: 'All', color: '#8fd3ff', hi: '#d4f0ff' };
+  const VIAL_TAB_ORDER = ['all', ...Object.keys(JARS)];
+  const vialInfo = (k) => (k === 'all' ? ALL_VIAL : JARS[k]);
+  function vialTabsHTML(current) {
+    return `<div class="vial-tabs" role="tablist" aria-label="Vials">${VIAL_TAB_ORDER.map((k) => { const V = vialInfo(k); return `<button type="button" role="tab" class="vial-tab" style="--c:${V.color}" data-jar="${k}" aria-selected="${current === k}" tabindex="${current === k ? 0 : -1}">${esc(V.short)}</button>`; }).join('')}</div>`;
+  }
+  function bindVialTabs(body, a) {
+    const goToJar = (k) => {
+      if (!vialInfo(k) || k === a.jar) return;
+      a.jar = k; a.vibe = 'any'; a.resultId = null; a.selecting = false; a.selected = []; a.confirm = false;
+      renderSheet(true); $(`.vial-tab[data-jar="${k}"]`, body)?.focus({ preventScroll: true });
+    };
+    const stepJar = (dir) => goToJar(VIAL_TAB_ORDER[VIAL_TAB_ORDER.indexOf(a.jar) + dir]);
+    $$('.vial-tab', body).forEach((t) => t.addEventListener('click', () => goToJar(t.dataset.jar)));
+    $('.vial-tabs', body).addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight') { e.preventDefault(); stepJar(1); }
+      if (e.key === 'ArrowLeft') { e.preventDefault(); stepJar(-1); }
+    });
+    const banner = $('.vibe-banner', body); if (banner) bindSwipe(banner, stepJar);
+    dragScroll($('.vial-tabs', body));
+  }
+
+  // All ideas, with select mode for deleting several at once.
+  function allSheet(body, a) {
+    const order = Object.keys(JARS);
+    const list = store.ideas.filter((i) => i.status !== 'done')
+      .sort((x, y) => order.indexOf(x.jar) - order.indexOf(y.jar) || (x.created_at || '').localeCompare(y.created_at || ''));
+    a.selected = (a.selected || []).filter((id) => list.some((i) => i.id === id));
+    const picked = new Set(a.selected);
+    const n = picked.size;
+    const selectable = (i) => {
+      const on = picked.has(i.id);
+      return cardHTML(i)
+        .replace('class="card', `class="card selectable${on ? ' on' : ''}`)
+        .replace(`data-open-idea="${esc(i.id)}"`, `data-select-id="${esc(i.id)}" aria-pressed="${on}"`)
+        .replace('<span class="card-body">', '<span class="card-check" aria-hidden="true"></span><span class="card-body">');
+    };
+    body.innerHTML = cardTop({
+      pic: 'all', color: ALL_VIAL.color, tabs: vialTabsHTML('all'),
+      title: ALL_VIAL.name, titleColor: ALL_VIAL.hi,
+      sub: list.length ? `Every idea in your three vials (${list.length}).` : 'Every idea in your three vials.',
+    }) + (list.length ? `
+      <div class="select-tools">
+        ${a.selecting
+          ? `<button class="btn ghost" id="selAll">${n === list.length ? 'Clear all' : `Select all (${list.length})`}</button>
+             <button class="btn ghost" id="selCancel">Cancel</button>`
+          : `<span class="muted small">Tap an idea to open it.</span><button class="btn" id="selStart">Select</button>`}
+      </div>
+      <div class="cards">${list.map((i) => (a.selecting ? selectable(i) : cardHTML(i))).join('')}</div>
+      ${a.selecting ? `<div class="select-bar">
+        ${a.confirm && n
+          ? `<div class="confirm-box"><p style="margin:0">Delete ${n} ${n === 1 ? 'idea' : 'ideas'} for both of you? This can't be undone.</p>
+              <div class="btn-row"><button class="btn danger" id="delYes">Delete ${n === 1 ? 'it' : 'them'}</button><button class="btn ghost" id="delNo">Keep them</button></div></div>`
+          : `<span class="sel-count">${n ? `${n} selected` : 'Tap ideas to select them'}</span>
+             <button class="btn danger" id="delSel" ${n ? '' : 'disabled'}>Delete${n ? ` ${n}` : ''}</button>`}
+      </div>` : ''}`
+      : `<div class="empty"><p>No ideas yet. Open a vial and add your first one.</p></div>`);
+    setSheetGlow(ALL_VIAL.color);
+    bindVialTabs(body, a);
+    const again = () => renderSheet();
+    $('#selStart', body)?.addEventListener('click', () => { a.selecting = true; a.selected = []; a.confirm = false; again(); });
+    $('#selCancel', body)?.addEventListener('click', () => { a.selecting = false; a.selected = []; a.confirm = false; again(); });
+    $('#selAll', body)?.addEventListener('click', () => { a.selected = n === list.length ? [] : list.map((i) => i.id); a.confirm = false; again(); });
+    $$('[data-select-id]', body).forEach((c) => c.addEventListener('click', () => {
+      const id = c.dataset.selectId;
+      a.selected = picked.has(id) ? a.selected.filter((x) => x !== id) : [...a.selected, id];
+      a.confirm = false; again();
+    }));
+    $('#delSel', body)?.addEventListener('click', () => { a.confirm = true; again(); });
+    $('#delNo', body)?.addEventListener('click', () => { a.confirm = false; again(); });
+    $('#delYes', body)?.addEventListener('click', async (e) => {
+      e.target.disabled = true; e.target.textContent = 'Deleting…';
+      const ids = [...a.selected];
+      try {
+        a.selecting = false; a.selected = []; a.confirm = false;
+        await store.removeMany(ids);
+        toast(`Deleted ${ids.length} ${ids.length === 1 ? 'idea' : 'ideas'}`);
+        renderSheet();
+      } catch (ex) { toast(ex.message || 'Could not delete them'); renderSheet(); }
+    });
+  }
+
   // Draw from a vial
   function drawPool(a) {
     return store.ideas.filter((i) => i.jar === a.jar && i.status !== 'done' && !isExpired(i) && (a.vibe === 'any' || i.vibe === a.vibe) && (!a.bothOnly || bothIn(i)));
   }
   function drawSheet(body, a) {
+    if (a.jar === 'all') return allSheet(body, a);
     const J = JARS[a.jar];
     const pool = drawPool(a);
     const res = a.resultId && store.ideas.find((i) => i.id === a.resultId);
     const vibes = [['any', 'Any vibe', J.color], ...J.vibes.map((v) => [v, VIBES[v].name, VIBES[v].color])];
     body.innerHTML = `
       <div class="sheet-head" style="--head-img:url('${picUrl(a.vibe === 'any' ? a.jar : a.vibe)}');--c:${J.color}">
-        <div class="vial-tabs" role="tablist" aria-label="Vials">${Object.entries(JARS).map(([k, V]) => `<button type="button" role="tab" class="vial-tab" style="--c:${V.color}" data-jar="${k}" aria-selected="${a.jar === k}" tabindex="${a.jar === k ? 0 : -1}">${esc(V.short)}</button>`).join('')}</div>
+        ${vialTabsHTML(a.jar)}
       </div>
       <div class="vibe-banner" style="--c:${J.color}">
         ${(() => { const pic = a.vibe === 'any' ? a.jar : a.vibe; return `<img src="assets/vibes/${pic}.jpg?v=${PICS_VERSION}" alt="" style="object-position:${VIBE_FOCUS[pic] || '50% 50%'};${VIBE_LIFT[pic] ? `filter:brightness(${VIBE_LIFT[pic]}) saturate(1.1)` : ''}" onerror="this.remove()">`; })()}
@@ -858,21 +948,7 @@
     setVialLevel('big', openIdeas(a.jar).length);
     setSheetGlow(J.color);
     // Move between vials without closing: tap a tab, swipe the picture, or use the arrow keys.
-    const jarKeys = Object.keys(JARS);
-    const goToJar = (k) => { if (!JARS[k] || k === a.jar) return; a.jar = k; a.vibe = 'any'; a.resultId = null; renderSheet(true); $(`.vial-tab[data-jar="${k}"]`, body)?.focus({ preventScroll: true }); };
-    const stepJar = (dir) => goToJar(jarKeys[jarKeys.indexOf(a.jar) + dir]);
-    $$('.vial-tab', body).forEach((t) => t.addEventListener('click', () => goToJar(t.dataset.jar)));
-    $('.vial-tabs', body).addEventListener('keydown', (e) => {
-      if (e.key === 'ArrowRight') { e.preventDefault(); stepJar(1); }
-      if (e.key === 'ArrowLeft') { e.preventDefault(); stepJar(-1); }
-    });
-    const banner = $('.vibe-banner', body); let touch = null;
-    banner.addEventListener('touchstart', (e) => { const t = e.touches[0]; touch = { x: t.clientX, y: t.clientY }; }, { passive: true });
-    banner.addEventListener('touchend', (e) => {
-      if (!touch) return; const t = e.changedTouches[0];
-      const dx = t.clientX - touch.x, dy = t.clientY - touch.y; touch = null;
-      if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) stepJar(dx < 0 ? 1 : -1); // swipe left = next vial
-    }, { passive: true });
+    bindVialTabs(body, a);
     $$('.chip[data-vibe]', body).forEach((b) => b.addEventListener('click', () => { a.vibe = b.dataset.vibe; a.resultId = null; renderSheet(true); }));
     $('#drawBoth', body).addEventListener('change', (e) => { a.bothOnly = e.target.checked; a.resultId = null; renderSheet(true); });
     $('[data-act="add-jar"]', body)?.addEventListener('click', () => openSheet('edit', { prefill: { jar: a.jar, vibe: a.vibe === 'any' ? J.vibes[0] : a.vibe } }, false, { type: 'draw', args: a }));

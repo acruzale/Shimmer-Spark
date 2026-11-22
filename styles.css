@@ -702,3 +702,31 @@ button.person.mine:focus-visible { outline: 2px solid var(--brass-hi); outline-o
   .sheet-head .vial-tabs.dragging { cursor: grabbing; }
   .sheet-head .vial-tabs.dragging .vial-tab { pointer-events: none; }
 }
+
+/* All ideas: select several to delete at once */
+.select-tools { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.select-tools .btn { min-height: 40px; padding: 9px 14px 7px; }
+.card.selectable { padding-right: 46px; }
+.card-check {
+  position: absolute; top: 50%; right: 12px; transform: translateY(-50%);
+  width: 24px; height: 24px; border-radius: 50%;
+  border: 1.5px solid rgba(201,161,90,.6); background: rgba(14,14,16,.5);
+  display: grid; place-items: center; transition: background-color .15s ease, border-color .15s ease;
+}
+.card.selectable.on { border-color: #ff8a8a; background: color-mix(in srgb, #c23a5a 14%, var(--glass-2)); }
+.card.selectable.on .card-check { background: #e24d5f; border-color: #ff9a9a; }
+.card.selectable.on .card-check::after {
+  content: ""; width: 10px; height: 6px; border-left: 2px solid #fff; border-bottom: 2px solid #fff;
+  transform: translateY(-1px) rotate(-45deg);
+}
+.select-bar {
+  position: sticky; bottom: -24px; z-index: 3;
+  margin: 0 calc(-1 * var(--gutter-r)) -24px calc(-1 * var(--gutter-l));
+  padding: 12px var(--gutter-r) 16px var(--gutter-l);
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  background: linear-gradient(to top, rgba(17,17,20,.98) 70%, rgba(17,17,20,.85));
+  border-top: 1px solid rgba(201,161,90,.35);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+}
+.select-bar .confirm-box { flex: 1 1 100%; background: rgba(154,42,42,.12); }
+.sel-count { color: var(--ink-soft); font-size: .9rem; }
