@@ -30,9 +30,9 @@
   // VIBE_FOCUS picks which part of a picture stays in view when it is cropped to the banner.
   // VIBE_LIFT brightens pictures that are too dark under the banner's fade.
   // Bump PICS_VERSION whenever a picture file is replaced, so phones load the new one.
-  const PICS_VERSION = 3;
+  const PICS_VERSION = 4;
   const VIBE_LIFT = { cozy: 1.6 };
-  const VIBE_FOCUS = { chill: '50% 50%', hiking: '42% 55%', active: '55% 50%', daytrip: '47% 100%', leisure: '55% 30%', 'indoor-active': '62% 40%', cozy: '62% 50%', culinary: '40% 50%', projects: '58% 30%', outside: '42% 45%', indoor: '50% 45%', home: '48% 30%' };
+  const VIBE_FOCUS = { chill: '50% 50%', hiking: '42% 55%', active: '55% 50%', daytrip: '47% 100%', leisure: '55% 30%', 'indoor-active': '50% 40%', cozy: '62% 50%', culinary: '62% 40%', projects: '50% 35%', outside: '42% 45%', indoor: '50% 45%', home: '48% 30%' };
   // Where each vial hangs on the photo's string of lights (picture coordinates, 1500 x 1000).
   const VIAL_POS = { outside: { x: 600, wire: 30 }, indoor: { x: 750, wire: 62 }, home: { x: 900, wire: 38 } };
   const stringY = (x) => 75 + (x - 600) * 0.173; // traced from the photo's light string between x 600 and 900
@@ -747,7 +747,8 @@
       <div class="btn-row stretch">
         <button class="btn primary" id="shakeBtn" style="--c:${J.color}" ${pool.length ? '' : 'disabled'}>${res ? 'Shake again' : 'Shake the vial'}</button>
       </div>
-      ${pool.length ? '' : `<div class="empty"><p>This vial is empty for that vibe.</p><button class="btn" data-act="add-jar">Add an idea here</button></div>`}
+      <div class="btn-row stretch"><button class="btn add-idea" data-act="add-jar"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>Add an idea</button></div>
+      ${pool.length ? '' : `<div class="empty"><p>This vial is empty for that vibe.</p></div>`}
       ${pool.length ? `<h3 style="margin:6px 0 0;font-family:var(--font-display);font-weight:400;letter-spacing:.14em;text-transform:uppercase;font-size:.9rem;color:var(--ink-soft)">Or pick one yourself (${pool.length})</h3>
         <div class="cards">${pool.map((i) => cardHTML(i)).join('')}</div>` : ''}`;
     setVialLevel('big', openIdeas(a.jar).length);
@@ -1223,7 +1224,7 @@
     if (view === 'us' && !document.activeElement?.matches('#myName')) renderUs();
     renderSheet();
     const n = store.ideas.filter((i) => i.status !== 'done').length;
-    $('#tagline').textContent = n ? 'Select a vial to ignite the night' : 'Tap + to drop your first idea into a vial';
+    $('#tagline').textContent = n ? 'Select a vial to ignite the night' : 'Open a vial to add your first idea';
   }
 
   document.addEventListener('click', async (e) => {
@@ -1236,7 +1237,6 @@
     if (act === 'starters') { try { await store.addStarters(); toast('Added 20 starter ideas'); } catch (ex) { toast(ex.message); } }
   });
   $$('.dock-btn').forEach((b) => b.addEventListener('click', () => { closeSheet(); setView(b.dataset.view); }));
-  $('#addBtn').addEventListener('click', () => openSheet('edit', {}));
   $('#sheetClose').addEventListener('click', closeSheet);
   $('#sheetBackdrop').addEventListener('click', closeSheet);
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeSheet(); });

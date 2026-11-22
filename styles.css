@@ -129,7 +129,7 @@ img { max-width: 100%; }
   position: fixed; left: 0; right: 0; bottom: calc(0px - var(--ios-gap)); z-index: 20;
   height: calc(var(--dock-h) + var(--safe-b));
   padding: 0 var(--gutter-r) var(--safe-b) var(--gutter-l);
-  display: grid; grid-template-columns: repeat(4, 1fr); align-items: center; justify-items: center;
+  display: grid; grid-template-columns: repeat(3, 1fr); align-items: center; justify-items: center;
   background: linear-gradient(to top, rgba(14,14,16,.98), rgba(22,22,25,.9));
   border-top: 1px solid var(--line);
   backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
@@ -138,19 +138,8 @@ img { max-width: 100%; }
   background: none; border: 0; display: flex; flex-direction: column; align-items: center; gap: 3px;
   color: var(--ink-faint); font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; padding: 6px 10px;
 }
-.dock-btn svg, .dock-add svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.dock-btn svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 .dock-btn[aria-current="page"] { color: var(--brass-hi); }
-.dock-add {
-  width: 56px; height: 56px; margin-top: -26px; border-radius: 50%;
-  border: 2px solid var(--brass-hi);
-  background: radial-gradient(circle at 35% 30%, #4a3a1c, #1a140a 70%);
-  color: var(--brass-hi);
-  box-shadow: 0 0 0 4px rgba(17,17,19,.96), 0 4px 10px rgba(0,0,0,.45); /* no halo: a soft lift instead */
-  display: grid; place-items: center;
-  transition: transform .15s ease;
-}
-.dock-add:active { transform: scale(.94); }
-.dock-add svg { width: 26px; height: 26px; stroke-width: 2.2; }
 
 /* ---------- Panels (Ideas / Plans / Us) ---------- */
 .panel {
@@ -646,3 +635,6 @@ button.person.mine:focus-visible { outline: 2px solid var(--brass-hi); outline-o
 .vial-tab:active { transform: scale(.96); }
 .vial-tab:focus-visible { outline: 2px solid var(--brass-hi); outline-offset: 2px; }
 .vibe-banner { min-height: 230px; } /* room for the tabs above the vial name */
+
+/* Add an idea, inside the vial screen (between Shake and the list) */
+.btn.add-idea svg { flex: none; }
