@@ -147,3 +147,31 @@ drop policy if exists "members delete covers" on storage.objects;
 create policy "members delete covers" on storage.objects
   for delete to authenticated
   using (bucket_id = 'covers' and public.is_member(((storage.foldername(name))[1])::uuid));
+
+-- "Not for me": a red light for the other person, never a delete (added later).
+alter table public.ideas add column if not exists declined uuid[] not null default '{}';
+
+create or replace function public.set_interest(p_idea uuid, p_on boolean)
+returns uuid[] language sql security invoker set search_path = public as $$
+  update public.ideas
+     set interested = case
+           when p_on then array(select distinct unnest(interested || auth.uid()))
+           else array_remove(interested, auth.uid()) end,
+         declined = case when p_on then array_remove(declined, auth.uid()) else declined end
+   where id = p_idea
+  returning interested;
+$$;
+
+create or replace function public.set_decline(p_idea uuid, p_on boolean)
+returns uuid[] language sql security invoker set search_path = public as $$
+  update public.ideas
+     set declined = case
+           when p_on then array(select distinct unnest(declined || auth.uid()))
+           else array_remove(declined, auth.uid()) end,
+         interested = case when p_on then array_remove(interested, auth.uid()) else interested end
+   where id = p_idea
+  returning declined;
+$$;
+
+revoke execute on function public.set_decline(uuid, boolean) from public, anon;
+grant execute on function public.set_decline(uuid, boolean) to authenticated;

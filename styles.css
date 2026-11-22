@@ -739,3 +739,29 @@ button.person.mine:focus-visible { outline: 2px solid var(--brass-hi); outline-o
 }
 .sel-toggles { display: flex; gap: 8px; margin-left: auto; }
 .sel-btn { min-height: 38px; padding: 8px 14px 6px; font-size: .78rem; }
+
+/* "Not for me": a red light instead of the golden one. It never deletes the idea. */
+.who i.no { background: #ff5a3c; border-color: #ff5a3c; box-shadow: 0 0 6px #ff5a3c; }
+.who-pill.no { color: #fff1ec; background: rgba(255,90,60,.22); border-color: #ff6b4a; box-shadow: 0 0 10px rgba(255,90,60,.35); }
+.person.out { border-color: #ff6b4a; box-shadow: 0 0 18px rgba(255,90,60,.2) inset; }
+.person.out .p-state { color: #ff8a6e; }
+.person.out .p-state::before { content: "✗ "; }
+.person.mine.out { border-style: solid; }
+.talk-banner {
+  text-align: center; padding: 12px; border-radius: 12px; line-height: 1.45;
+  background: radial-gradient(circle at 50% 0, rgba(255,90,60,.22), transparent 70%), var(--glass-2);
+  border: 1px solid #ff6b4a; color: #ffb3a1;
+}
+.not-for-me {
+  display: block; margin: 8px auto 0; padding: 8px 18px; min-height: 40px; border-radius: 999px;
+  background: transparent; border: 1px solid rgba(255,107,74,.55); color: #ff8a6e;
+  font: inherit; font-size: .9rem; cursor: pointer;
+}
+.not-for-me:active { transform: scale(.97); }
+.not-for-me:focus-visible { outline: 2px solid #ff6b4a; outline-offset: 2px; }
+.sheet.as-scroll .person.out { border-color: #b8331f; background: linear-gradient(180deg, rgba(255,170,150,.6), rgba(230,110,85,.4)); }
+.sheet.as-scroll .person.out .p-state { color: #7a1a0c; }
+.sheet.as-scroll .person.mine.out .p-state { color: #7a1a0c; }
+.sheet.as-scroll .talk-banner { background: rgba(184,51,31,.08); border-color: #b8331f; color: #7a1a0c; }
+.sheet.as-scroll .not-for-me { border-color: rgba(154,42,30,.55); color: #9a2a1e; }
+.sheet.as-scroll .not-for-me:focus-visible { outline-color: #9a2a1e; }

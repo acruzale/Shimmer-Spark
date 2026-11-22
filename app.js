@@ -123,7 +123,7 @@
   // ---------------------------------------------------------------- stores
   const blankIdea = (f, me) => ({
     id: uid(), title: '', notes: '', link: '', place: '', maps_url: '', deadline: null, jar: 'home', vibe: 'cozy', cover_url: null,
-    interested: [], status: 'open', planned_for: null, planned_time: null,
+    interested: [], declined: [], status: 'open', planned_for: null, planned_time: null,
     created_by: me, created_at: new Date().toISOString(), ...f,
   });
 
@@ -160,7 +160,16 @@
     async setInterest(id, on) {
       const i = this.find(id); if (!i) return;
       const s = new Set(i.interested); on ? s.add(this.meId) : s.delete(this.meId);
-      i.interested = [...s]; this.emit();
+      i.interested = [...s];
+      if (on) i.declined = (i.declined || []).filter((x) => x !== this.meId);
+      this.emit();
+    }
+    async setDecline(id, on) {
+      const i = this.find(id); if (!i) return;
+      const s = new Set(i.declined || []); on ? s.add(this.meId) : s.delete(this.meId);
+      i.declined = [...s];
+      if (on) i.interested = (i.interested || []).filter((x) => x !== this.meId);
+      this.emit();
     }
     async uploadCover(blob) { return blobToDataURL(blob); }
     async rename(name) { const m = this.members.find((x) => x.user_id === this.meId); m.display_name = name; this.emit(); }
@@ -273,7 +282,14 @@
     async setInterest(id, on) {
       const { data, error } = await this.sb.rpc('set_interest', { p_idea: id, p_on: on });
       if (error) throw error;
-      const i = this.find(id); if (i) { i.interested = data || []; this.emit(); }
+      const i = this.find(id);
+      if (i) { i.interested = data || []; if (on) i.declined = (i.declined || []).filter((x) => x !== this.meId); this.emit(); }
+    }
+    async setDecline(id, on) {
+      const { data, error } = await this.sb.rpc('set_decline', { p_idea: id, p_on: on });
+      if (error) throw error;
+      const i = this.find(id);
+      if (i) { i.declined = data || []; if (on) i.interested = (i.interested || []).filter((x) => x !== this.meId); this.emit(); }
     }
     async uploadCover(blob) {
       const path = `${this.spaceId}/${uid()}.jpg`;
@@ -304,6 +320,11 @@
   const isIn = (idea, id) => (idea.interested || []).includes(id);
   const meIn = (idea) => isIn(idea, store.meId);
   const partnerIn = (idea) => { const p = partner(); return p ? isIn(idea, p.user_id) : false; };
+  // "Not for me": a red light for the other person to see. It never deletes the idea.
+  const isOut = (idea, id) => (idea.declined || []).includes(id);
+  const meOut = (idea) => isOut(idea, store.meId);
+  const partnerOut = (idea) => { const p = partner(); return p ? isOut(idea, p.user_id) : false; };
+  const anyOut = (idea) => (idea.declined || []).length > 0;
   const bothIn = (idea) => store.members.length >= 2 && store.members.every((m) => isIn(idea, m.user_id));
   const openIdeas = (jar) => store.ideas.filter((i) => i.status !== 'done' && (!jar || i.jar === jar));
 
@@ -522,8 +543,8 @@
   // The two of you as name pills, lit when that person is in.
   function whoPills(idea) {
     const p = partner();
-    const pill = (name, on) => `<span class="who-pill${on ? ' on' : ''}">${on ? '✓ ' : ''}${esc(name)}</span>`;
-    return `<span class="who-pills">${pill(me().display_name, meIn(idea))}${p ? pill(p.display_name, partnerIn(idea)) : ''}</span>`;
+    const pill = (name, on, no) => `<span class="who-pill${on ? ' on' : no ? ' no' : ''}">${on ? '✓ ' : no ? '✗ ' : ''}${esc(name)}</span>`;
+    return `<span class="who-pills">${pill(me().display_name, meIn(idea), meOut(idea))}${p ? pill(p.display_name, partnerIn(idea), partnerOut(idea)) : ''}</span>`;
   }
 
   function vibeChip(vibe, extra = '') {
@@ -532,7 +553,9 @@
   }
   function whoDots(idea) {
     const p = partner();
-    return `<span class="who" title="${esc(me().display_name)}${meIn(idea) ? ' is in' : ''}${p ? ' · ' + esc(p.display_name) + (partnerIn(idea) ? ' is in' : '') : ''}"><i class="${meIn(idea) ? 'on' : ''}"></i><i class="${partnerIn(idea) ? 'on' : ''}"></i></span>`;
+    const state = (inn, out) => (inn ? 'on' : out ? 'no' : '');
+    const word = (inn, out) => (inn ? ' is in' : out ? ' is not keen' : '');
+    return `<span class="who" title="${esc(me().display_name)}${word(meIn(idea), meOut(idea))}${p ? ' · ' + esc(p.display_name) + word(partnerIn(idea), partnerOut(idea)) : ''}"><i class="${state(meIn(idea), meOut(idea))}"></i><i class="${state(partnerIn(idea), partnerOut(idea))}"></i></span>`;
   }
   function thumbHTML(idea) {
     if (idea.cover_url) return `<img class="thumb" src="${esc(idea.cover_url)}" alt="" loading="lazy">`;
@@ -668,6 +691,7 @@
     { key: 'both', label: 'Both in', color: '#2fd39a', pic: 'plans-both' },
     { key: 'theirs', label: 'Are you in?', color: '#4f7bff', pic: 'plans-theirs' },
     { key: 'waiting', label: 'Waiting', color: '#a63bf2', pic: 'plans-waiting' },
+    { key: 'talk', label: 'Talk about it', color: '#ff6b4a', pic: null },
     { key: 'memories', label: 'Previous dates', color: '#f47cf6', pic: 'plans-memories' },
   ];
   function planGroups() {
@@ -681,8 +705,9 @@
       past: planned.filter((i) => i.planned_for < t),
       ready: store.ideas.filter((i) => i.status === 'open' && bothIn(i)),
       // Ideas you're in on that still need your partner, including before they've joined.
-      waiting: store.ideas.filter((i) => i.status === 'open' && meIn(i) && !partnerIn(i)),
-      theirs: p ? store.ideas.filter((i) => i.status === 'open' && partnerIn(i) && !meIn(i)) : [],
+      waiting: store.ideas.filter((i) => i.status === 'open' && meIn(i) && !partnerIn(i) && !anyOut(i)),
+      theirs: p ? store.ideas.filter((i) => i.status === 'open' && partnerIn(i) && !meIn(i) && !anyOut(i)) : [],
+      talk: store.ideas.filter((i) => i.status !== 'done' && anyOut(i)),
       done: store.ideas.filter((i) => i.status === 'done')
         .sort((x, y) => (wentOnDate(y) || y.created_at.slice(0, 10)).localeCompare(wentOnDate(x) || x.created_at.slice(0, 10))),
     };
@@ -697,7 +722,7 @@
     const g = planGroups();
     if (!a.tab) a.tab = defaultPlanTab(g);
     const p = partner(); const pn = p ? p.display_name : 'your partner';
-    const counts = { ending: g.ending.length + g.ended.length, both: g.upcoming.length + g.past.length + g.ready.length, theirs: g.theirs.length, waiting: g.waiting.length, memories: g.done.length };
+    const counts = { ending: g.ending.length + g.ended.length, both: g.upcoming.length + g.past.length + g.ready.length, theirs: g.theirs.length, waiting: g.waiting.length, talk: g.talk.length, memories: g.done.length };
     const tab = PLAN_TABS.find((t) => t.key === a.tab) || PLAN_TABS[2];
     const sec = (title, items, opts, hint) => items.length
       ? `<h3 class="sec-title">${esc(title)}</h3>${hint ? `<p class="muted small" style="margin:-8px 0 0">${esc(hint)}</p>` : ''}<div class="cards">${items.map((i) => cardHTML(i, opts)).join('')}</div>` : '';
@@ -728,6 +753,11 @@
         sub: p ? `Ideas you said yes to. They move to Both in once ${pn} is in too.` : 'Ideas you said yes to. Your partner has not joined yet: send them the invite code from Us.',
         html: g.waiting.length ? `<div class="cards">${g.waiting.map((i) => cardHTML(i)).join('')}</div>`
           : empty('Nothing waiting. Tap your box on an idea to say you are in.', drawBtn),
+      },
+      talk: {
+        sub: 'One of you said \u201cNot for me\u201d. Talk it over, then keep it or delete it.',
+        html: g.talk.length ? `<div class="cards">${g.talk.map((i) => cardHTML(i)).join('')}</div>`
+          : empty('Nothing to talk about. When either of you says \u201cNot for me\u201d on an idea, it shows up here with a red light.'),
       },
       memories: {
         sub: g.done.length ? `You've been on ${g.done.length} ${g.done.length === 1 ? 'date' : 'dates'} together. Newest first.` : 'Dates you go on are kept here, so you can look back on them.',
@@ -926,7 +956,7 @@
 
   // Draw from a vial
   function drawPool(a) {
-    return store.ideas.filter((i) => i.jar === a.jar && i.status !== 'done' && !isExpired(i) && (a.vibe === 'any' || i.vibe === a.vibe) && (!a.bothOnly || bothIn(i)));
+    return store.ideas.filter((i) => i.jar === a.jar && i.status !== 'done' && !isExpired(i) && !anyOut(i) && (a.vibe === 'any' || i.vibe === a.vibe) && (!a.bothOnly || bothIn(i)));
   }
   function drawSheet(body, a) {
     if (a.jar === 'all') return allSheet(body, a);
@@ -1002,6 +1032,10 @@
 
   async function toggleInterest(id) {
     const idea = store.find(id); if (!idea) return;
+    if (meOut(idea)) { // tapping your box after "Not for me" takes that back
+      try { await store.setDecline(id, false); toast('Taken back'); } catch (e) { toast(e.message || 'Could not save that'); }
+      return;
+    }
     const on = !meIn(idea);
     try {
       await store.setInterest(id, on);
@@ -1009,6 +1043,13 @@
       if (on && fresh && bothIn(fresh) && fresh.status === 'open') toast("You're both in! Pick a day for it.");
       else toast(on ? "You're in" : 'Taken back');
     } catch (e) { toast(e.message || 'Could not save that'); }
+  }
+
+  async function toggleDecline(id) {
+    const idea = store.find(id); if (!idea) return;
+    const on = !meOut(idea);
+    try { await store.setDecline(id, on); toast(on ? 'Marked as not for you. It stays until you decide together.' : 'Taken back'); }
+    catch (e) { toast(e.message || 'Could not save that'); }
   }
 
   // Idea detail
@@ -1024,10 +1065,10 @@
     else if (media) mediaHTML = `<div class="play-card">${i.cover_url ? `<img src="${esc(i.cover_url)}" alt="">` : ''}<button class="btn" id="playBtn">▶ Play the ${esc(media.site)} video here</button></div>`;
     else if (i.cover_url) mediaHTML = `<img class="cover" src="${esc(i.cover_url)}" alt="">`;
 
-    const person = (mem, on) => `<div class="person${on ? ' on' : ''}"><span class="p-name">${esc(mem.display_name)}</span><span class="p-state">${on ? "I'm in" : 'Not yet'}</span></div>`;
-    // Your own box is the switch: tap to say you're in, tap again to take it back.
-    const myBox = (mem, on) => `<button type="button" class="person mine${on ? ' on' : ''}" data-interest="${esc(i.id)}" aria-pressed="${on}" aria-label="${on ? "You're in. Tap to take it back" : "Tap if you're in"}">
-      <span class="p-name">${esc(mem.display_name)}</span><span class="p-state">${on ? "I'm in" : "Tap if you're in"}</span></button>`;
+    const person = (mem, on, out) => `<div class="person${on ? ' on' : out ? ' out' : ''}"><span class="p-name">${esc(mem.display_name)}</span><span class="p-state">${on ? "I'm in" : out ? 'Not for me' : 'Not yet'}</span></div>`;
+    // Your own box is the switch: tap to say you're in, tap again to take it back (or to take back "Not for me").
+    const myBox = (mem, on, out) => `<button type="button" class="person mine${on ? ' on' : out ? ' out' : ''}" data-interest="${esc(i.id)}" aria-pressed="${on}" aria-label="${on ? "You're in. Tap to take it back" : out ? 'Not for you. Tap to take it back' : "Tap if you're in"}">
+      <span class="p-name">${esc(mem.display_name)}</span><span class="p-state">${on ? "I'm in" : out ? 'Not for me' : "Tap if you're in"}</span></button>`;
     let planBlock = '';
     if (i.status === 'planned' && i.planned_for) {
       planBlock = `<div class="match-banner">${esc(fmtDate(i.planned_for, { weekday: 'long', month: 'long', day: 'numeric' }))}${i.planned_time ? ' · ' + esc(fmtTime(i.planned_time)) : ''}</div>
@@ -1045,6 +1086,9 @@
     } else if (both) {
       planBlock = `<div class="match-banner">You're both in</div>
         <div class="btn-row stretch"><button class="btn primary" id="planBtn">Pick a day</button></div>`;
+    } else if (anyOut(i)) {
+      planBlock = `<div class="talk-banner">${meOut(i) && partnerOut(i) ? 'Neither of you is keen' : meOut(i) ? 'You said not for you' : `${esc(p?.display_name || 'Your partner')} isn't keen`}.
+        Talk about it, then keep it or delete it.</div>`;
     }
 
     // Laid out like the scroll that unrolls from a vial: what, where, when, notes, then the two of you.
@@ -1059,7 +1103,8 @@
       ${media && link ? `<a class="btn ghost" href="${esc(link)}" target="_blank" rel="noopener">Open in ${esc(media.site)}</a>` : ''}
       ${link && !media ? `<a class="r-place" href="${esc(link)}" target="_blank" rel="noopener">${esc(hostOf(link))}</a>` : ''}
       <hr class="scroll-rule">
-      ${i.status !== 'done' ? `<div class="interest">${myBox(m, meIn(i))}${p ? person(p, partnerIn(i)) : `<div class="person"><span class="p-name">Partner</span><span class="p-state muted">Hasn't joined yet</span></div>`}</div>` : ''}
+      ${i.status !== 'done' ? `<div class="interest">${myBox(m, meIn(i), meOut(i))}${p ? person(p, partnerIn(i), partnerOut(i)) : `<div class="person"><span class="p-name">Partner</span><span class="p-state muted">Hasn't joined yet</span></div>`}</div>
+        ${i.status === 'open' && !meOut(i) ? `<button type="button" class="not-for-me" data-decline="${esc(i.id)}">Not for me</button>` : ''}` : ''}
       ${planBlock}
       ${i.status === 'open' ? '<div class="btn-row stretch"><button class="btn ghost" id="wentBtn">We already went on this date</button></div>' : ''}
       <hr class="scroll-rule">
@@ -1069,6 +1114,7 @@
 
     $('#playBtn', body)?.addEventListener('click', () => { a.playing = true; renderSheet(); });
     $$('[data-interest]', body).forEach((b) => b.addEventListener('click', () => toggleInterest(b.dataset.interest)));
+    $$('[data-decline]', body).forEach((b) => b.addEventListener('click', () => toggleDecline(b.dataset.decline)));
     $('#planBtn', body)?.addEventListener('click', () => openSheet('plan', { id: i.id }));
     $('#replanBtn', body)?.addEventListener('click', () => openSheet('plan', { id: i.id }));
     $('#doneBtn', body)?.addEventListener('click', () => openSheet('done', { id: i.id }));
