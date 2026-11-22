@@ -30,9 +30,9 @@
   // VIBE_FOCUS picks which part of a picture stays in view when it is cropped to the banner.
   // VIBE_LIFT brightens pictures that are too dark under the banner's fade.
   // Bump PICS_VERSION whenever a picture file is replaced, so phones load the new one.
-  const PICS_VERSION = 4;
+  const PICS_VERSION = 5;
   const VIBE_LIFT = { cozy: 1.6, 'plans-coming': 1.35 };
-  const VIBE_FOCUS = { chill: '50% 50%', hiking: '42% 55%', active: '55% 50%', daytrip: '47% 100%', leisure: '55% 30%', 'indoor-active': '50% 40%', cozy: '62% 50%', culinary: '62% 40%', projects: '50% 35%', outside: '42% 45%', indoor: '50% 45%', home: '48% 30%', 'plans-coming': '50% 30%', 'plans-both': '50% 40%', 'plans-theirs': '50% 40%', 'plans-waiting': '50% 45%', 'plans-memories': '50% 45%', us: '45% 40%' };
+  const VIBE_FOCUS = { chill: '50% 50%', hiking: '42% 55%', active: '55% 50%', daytrip: '47% 100%', leisure: '55% 30%', 'indoor-active': '50% 40%', cozy: '62% 50%', culinary: '62% 40%', projects: '50% 35%', outside: '42% 45%', indoor: '50% 45%', home: '48% 30%', 'plans-coming': '50% 30%', 'plans-both': '50% 40%', 'plans-theirs': '50% 40%', 'plans-waiting': '50% 45%', 'plans-memories': '50% 40%', us: '45% 40%' };
   // Where each vial hangs on the photo's string of lights (picture coordinates, 1500 x 1000).
   const VIAL_POS = { outside: { x: 600, wire: 30 }, indoor: { x: 750, wire: 62 }, home: { x: 900, wire: 38 } };
   const stringY = (x) => 75 + (x - 600) * 0.173; // traced from the photo's light string between x 600 and 900
