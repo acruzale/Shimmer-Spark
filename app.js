@@ -1177,7 +1177,8 @@
           <button type="button" class="btn ghost" id="pasteMaps">Paste</button></div>
           <p class="hint" id="mapsHint">In Google Maps, open the place, tap Share and copy the link.</p></div>
         <div class="field"><label for="fDeadline">Last day</label>
-          <input class="input" id="fDeadline" type="date" value="${esc(f.deadline || '')}">
+          <div class="input-row"><input class="input" id="fDeadline" type="date" value="${esc(f.deadline || '')}">
+            <button type="button" class="btn ghost clear-date" id="clearDeadline"${f.deadline ? '' : ' hidden'}>Clear</button></div>
           <p class="hint">For events that close, like a seasonal ice rink or an exhibition. It shows under "Ending soon" in Plans.</p></div>
         <div class="field"><label for="fNotes">Notes</label>
           <textarea class="textarea" id="fNotes" maxlength="2000" placeholder="Opening hours, price, what to bring…">${esc(f.notes)}</textarea></div>
@@ -1229,6 +1230,9 @@
       f.vibe = b.dataset.vibe; $$('#fVibe .chip', body).forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
     }));
     bindVibes();
+    const dl = $('#fDeadline', body), clearDl = $('#clearDeadline', body);
+    dl.addEventListener('input', () => { clearDl.hidden = !dl.value; });
+    clearDl.addEventListener('click', () => { dl.value = ''; dl.removeAttribute('value'); f.deadline = null; clearDl.hidden = true; });
 
     $('#ideaForm', body).addEventListener('submit', async (e) => {
       e.preventDefault();

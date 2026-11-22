@@ -776,3 +776,4 @@ button.person.mine:focus-visible { outline: 2px solid var(--brass-hi); outline-o
 }
 .sheet.as-scroll .input:focus, .sheet.as-scroll .textarea:focus { border-color: #9a7230; box-shadow: 0 0 0 3px rgba(154,114,48,.18); }
 .sheet.as-scroll .textarea::placeholder { color: #9a8462; }
+.input-row .clear-date { flex: none; padding-inline: 16px; }
