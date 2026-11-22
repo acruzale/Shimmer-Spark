@@ -336,7 +336,7 @@
   }
   function setVialLevel(pfx, count) {
     const r = document.getElementById(pfx + 'level'); if (!r) return;
-    const lvl = count ? Math.max(0.2, Math.min(1, count / 12)) : 0.06;
+    const lvl = 0.94; // always nearly full: the vials are for choosing, not counting (count is unused)
     const h = 96 * lvl;
     const y = String(66 + 96 - h);
     r.setAttribute('y', y); r.setAttribute('height', String(h));
@@ -358,7 +358,6 @@
           <circle cx="0" cy="0" r="3" fill="#3b3024"/>
           <g transform="translate(0 ${p.wire - 15})">${vialMarkup(k, 'v' + k)}</g>
           <text class="vial-label" x="0" y="${p.wire + 212}" text-anchor="middle" font-size="19" fill="#f4e6c8" stroke="rgba(0,0,0,.75)" stroke-width="4" paint-order="stroke">${esc(JARS[k].short)}</text>
-          <text class="vial-count" id="count-${k}" x="0" y="${p.wire + 236}" text-anchor="middle" font-size="15" fill="${JARS[k].hi}" stroke="rgba(0,0,0,.75)" stroke-width="4" paint-order="stroke"></text>
         </g></g>`;
     }).join('');
     $$('.vial-hit', svg).forEach((g) => {
@@ -372,7 +371,6 @@
       const n = openIdeas(k).length;
       setVialLevel('v' + k, n);
       const t = document.getElementById('count-' + k);
-      if (t) t.textContent = n === 1 ? '1 idea' : `${n} ideas`;
     }
   }
 
