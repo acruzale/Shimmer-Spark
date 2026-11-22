@@ -695,3 +695,10 @@ button.person.mine:focus-visible { outline: 2px solid var(--brass-hi); outline-o
   display: flex; align-items: center; gap: 10px;
 }
 .sec-title::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+
+/* Desktop: the tab row can be dragged sideways with the mouse */
+@media (hover: hover) and (pointer: fine) {
+  .sheet-head .vial-tabs { cursor: grab; }
+  .sheet-head .vial-tabs.dragging { cursor: grabbing; }
+  .sheet-head .vial-tabs.dragging .vial-tab { pointer-events: none; }
+}

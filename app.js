@@ -628,6 +628,32 @@
       if (e.key === 'ArrowLeft') { e.preventDefault(); step(-1); }
     });
     const banner = $('.vibe-banner', body); if (banner) bindSwipe(banner, step);
+    const row = $('.vial-tabs', body); if (row) dragScroll(row);
+  }
+  // Desktop: drag the tab row sideways with the mouse, or scroll it with the wheel. Only the row moves.
+  function dragScroll(row) {
+    let drag = null;
+    row.addEventListener('pointerdown', (e) => {
+      if (e.pointerType !== 'mouse' || e.button !== 0) return;
+      drag = { x: e.clientX, left: row.scrollLeft, moved: false };
+    });
+    row.addEventListener('pointermove', (e) => {
+      if (!drag) return;
+      const dx = e.clientX - drag.x;
+      if (!drag.moved && Math.abs(dx) > 5) { drag.moved = true; row.setPointerCapture(e.pointerId); row.classList.add('dragging'); }
+      if (drag.moved) row.scrollLeft = drag.left - dx;
+    });
+    const end = () => { if (drag?.moved) { row.classList.remove('dragging'); row.dataset.justDragged = '1'; setTimeout(() => delete row.dataset.justDragged, 0); } drag = null; };
+    row.addEventListener('pointerup', end); row.addEventListener('pointercancel', end);
+    // A drag shouldn't also count as a tap on the tab under the mouse.
+    row.addEventListener('click', (e) => { if (row.dataset.justDragged) { e.stopPropagation(); e.preventDefault(); } }, true);
+    row.addEventListener('wheel', (e) => {
+      if (row.scrollWidth <= row.clientWidth) return;
+      const d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+      const atStart = row.scrollLeft <= 0, atEnd = row.scrollLeft + row.clientWidth >= row.scrollWidth - 1;
+      if ((d < 0 && atStart) || (d > 0 && atEnd)) return; // at either end, let the card scroll instead
+      e.preventDefault(); row.scrollLeft += d;
+    }, { passive: false });
   }
 
   // ---- Plans: one section per tab, each with its own colour and picture
