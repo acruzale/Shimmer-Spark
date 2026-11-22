@@ -30,9 +30,9 @@
   // VIBE_FOCUS picks which part of a picture stays in view when it is cropped to the banner.
   // VIBE_LIFT brightens pictures that are too dark under the banner's fade.
   // Bump PICS_VERSION whenever a picture file is replaced, so phones load the new one.
-  const PICS_VERSION = 2;
+  const PICS_VERSION = 3;
   const VIBE_LIFT = { cozy: 1.6 };
-  const VIBE_FOCUS = { chill: '50% 50%', hiking: '42% 55%', active: '55% 50%', daytrip: '47% 100%', leisure: '55% 30%', 'indoor-active': '62% 40%', cozy: '62% 50%', culinary: '40% 50%', projects: '58% 30%', outside: '30% 60%', indoor: '50% 45%', home: '48% 30%' };
+  const VIBE_FOCUS = { chill: '50% 50%', hiking: '42% 55%', active: '55% 50%', daytrip: '47% 100%', leisure: '55% 30%', 'indoor-active': '62% 40%', cozy: '62% 50%', culinary: '40% 50%', projects: '58% 30%', outside: '42% 45%', indoor: '50% 45%', home: '48% 30%' };
   // Where each vial hangs on the photo's string of lights (picture coordinates, 1500 x 1000).
   const VIAL_POS = { outside: { x: 600, wire: 30 }, indoor: { x: 750, wire: 62 }, home: { x: 900, wire: 38 } };
   const stringY = (x) => 75 + (x - 600) * 0.173; // traced from the photo's light string between x 600 and 900
@@ -492,13 +492,11 @@
 
   // ---------------------------------------------------------------- views
   let view = 'home';
-  const filters = { q: '', jar: 'all', vibe: 'all', bothOnly: false };
 
   function setView(v) {
     view = v;
     $$('.dock-btn').forEach((b) => { if (b.dataset.view === v) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
-    ['ideas', 'plans', 'us'].forEach((p) => { $('#panel-' + p).hidden = p !== v; });
-    if (v === 'ideas') renderIdeasPanel();
+    ['plans', 'us'].forEach((p) => { $('#panel-' + p).hidden = p !== v; });
     if (v === 'plans') renderPlans();
     if (v === 'us') renderUs();
   }
@@ -579,45 +577,6 @@
         <span class="card-meta">${whoDots(idea)}${tag}${deadlineTag(idea)}</span>
       </span>
     </button>`;
-  }
-
-  function renderIdeasPanel() {
-    const el = $('#panel-ideas');
-    const jarChips = [['all', 'All', '#c9a15a'], ...Object.entries(JARS).map(([k, J]) => [k, J.name, J.color])]
-      .map(([k, n, c]) => `<button class="chip${k === 'all' ? ' plain' : ''}" style="--c:${c}" data-jar="${k}" aria-pressed="${filters.jar === k}">${esc(n)}</button>`).join('');
-    const vibeChips = filters.jar === 'all' ? '' : `<div class="chips" id="vibeChips">${[['all', 'Any vibe', '#c9a15a'], ...JARS[filters.jar].vibes.map((v) => [v, VIBES[v].name, VIBES[v].color])]
-      .map(([k, n, c]) => `<button class="chip${k === 'all' ? ' plain' : ''}" style="--c:${c}" data-vibe="${k}" aria-pressed="${filters.vibe === k}">${esc(n)}</button>`).join('')}</div>`;
-    el.innerHTML = `<div class="panel-inner">
-      <h2 id="ideasTitle">Ideas</h2>
-      <input class="search" id="ideaSearch" type="search" placeholder="Search titles, places and notes" value="${esc(filters.q)}" aria-label="Search ideas">
-      <div class="chips" id="jarChips">${jarChips}</div>
-      ${vibeChips}
-      <label class="toggle-row"><input type="checkbox" id="bothOnly" ${filters.bothOnly ? 'checked' : ''}> Only ones we're both into</label>
-      <div id="ideasList"></div>
-    </div>`;
-    $('#ideaSearch').addEventListener('input', (e) => { filters.q = e.target.value; renderIdeasList(); });
-    $('#bothOnly').addEventListener('change', (e) => { filters.bothOnly = e.target.checked; renderIdeasList(); });
-    $$('#jarChips .chip').forEach((b) => b.addEventListener('click', () => { filters.jar = b.dataset.jar; filters.vibe = 'all'; renderIdeasPanel(); }));
-    $$('#vibeChips .chip').forEach((b) => b.addEventListener('click', () => { filters.vibe = b.dataset.vibe; renderIdeasPanel(); }));
-    renderIdeasList();
-  }
-  function renderIdeasList() {
-    const box = $('#ideasList'); if (!box) return;
-    const q = filters.q.trim().toLowerCase();
-    const list = store.ideas.filter((i) =>
-      (filters.jar === 'all' || i.jar === filters.jar) &&
-      (filters.vibe === 'all' || i.vibe === filters.vibe) &&
-      (!filters.bothOnly || bothIn(i)) &&
-      (!q || [i.title, i.place, i.notes, i.link].join(' ').toLowerCase().includes(q)));
-    list.sort((a, b) => (a.status === 'done') - (b.status === 'done'));
-    if (!store.ideas.length) {
-      box.innerHTML = `<div class="empty"><p>No ideas yet. Paste a reel link from Telegram or Instagram, or start with a few classics.</p>
-        <div class="btn-row"><button class="btn primary" data-act="add">Add an idea</button><button class="btn ghost" data-act="starters">Add starter ideas</button></div></div>`;
-    } else if (!list.length) {
-      box.innerHTML = '<div class="empty"><p>Nothing matches those filters.</p></div>';
-    } else {
-      box.innerHTML = `<p class="muted small" style="margin:0 0 10px">${list.length} ${list.length === 1 ? 'idea' : 'ideas'}</p><div class="cards">${list.map((i) => cardHTML(i)).join('')}</div>`;
-    }
   }
 
   function renderPlans() {
@@ -774,6 +733,7 @@
     const vibes = [['any', 'Any vibe', J.color], ...J.vibes.map((v) => [v, VIBES[v].name, VIBES[v].color])];
     body.innerHTML = `
       <div class="vibe-banner" style="--c:${J.color}">
+        <div class="vial-tabs" role="tablist" aria-label="Vials">${Object.entries(JARS).map(([k, V]) => `<button type="button" role="tab" class="vial-tab" style="--c:${V.color}" data-jar="${k}" aria-selected="${a.jar === k}" tabindex="${a.jar === k ? 0 : -1}">${esc(V.short)}</button>`).join('')}</div>
         ${(() => { const pic = a.vibe === 'any' ? a.jar : a.vibe; return `<img src="assets/vibes/${pic}.jpg?v=${PICS_VERSION}" alt="" style="object-position:${VIBE_FOCUS[pic] || '50% 50%'};${VIBE_LIFT[pic] ? `filter:brightness(${VIBE_LIFT[pic]}) saturate(1.1)` : ''}" onerror="this.remove()">`; })()}
         <h2 class="sheet-title" style="color:${J.hi}">${esc(J.name)}</h2>
         <p class="sheet-sub">${a.vibe === 'any' ? "What's the vibe tonight?" : esc(VIBES[a.vibe].name)}</p>
@@ -791,6 +751,22 @@
       ${pool.length ? `<h3 style="margin:6px 0 0;font-family:var(--font-display);font-weight:400;letter-spacing:.14em;text-transform:uppercase;font-size:.9rem;color:var(--ink-soft)">Or pick one yourself (${pool.length})</h3>
         <div class="cards">${pool.map((i) => cardHTML(i)).join('')}</div>` : ''}`;
     setVialLevel('big', openIdeas(a.jar).length);
+    // Move between vials without closing: tap a tab, swipe the picture, or use the arrow keys.
+    const jarKeys = Object.keys(JARS);
+    const goToJar = (k) => { if (!JARS[k] || k === a.jar) return; a.jar = k; a.vibe = 'any'; a.resultId = null; renderSheet(true); $(`.vial-tab[data-jar="${k}"]`, body)?.focus({ preventScroll: true }); };
+    const stepJar = (dir) => goToJar(jarKeys[jarKeys.indexOf(a.jar) + dir]);
+    $$('.vial-tab', body).forEach((t) => t.addEventListener('click', () => goToJar(t.dataset.jar)));
+    $('.vial-tabs', body).addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight') { e.preventDefault(); stepJar(1); }
+      if (e.key === 'ArrowLeft') { e.preventDefault(); stepJar(-1); }
+    });
+    const banner = $('.vibe-banner', body); let touch = null;
+    banner.addEventListener('touchstart', (e) => { const t = e.touches[0]; touch = { x: t.clientX, y: t.clientY }; }, { passive: true });
+    banner.addEventListener('touchend', (e) => {
+      if (!touch) return; const t = e.changedTouches[0];
+      const dx = t.clientX - touch.x, dy = t.clientY - touch.y; touch = null;
+      if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) stepJar(dx < 0 ? 1 : -1); // swipe left = next vial
+    }, { passive: true });
     $$('.chip[data-vibe]', body).forEach((b) => b.addEventListener('click', () => { a.vibe = b.dataset.vibe; a.resultId = null; renderSheet(true); }));
     $('#drawBoth', body).addEventListener('change', (e) => { a.bothOnly = e.target.checked; a.resultId = null; renderSheet(true); });
     $('[data-act="add-jar"]', body)?.addEventListener('click', () => openSheet('edit', { prefill: { jar: a.jar, vibe: a.vibe === 'any' ? J.vibes[0] : a.vibe } }));
@@ -1243,7 +1219,6 @@
     updateVials();
     renderToday();
     layoutVials();
-    if (view === 'ideas') renderIdeasList();
     if (view === 'plans') renderPlans();
     if (view === 'us' && !document.activeElement?.matches('#myName')) renderUs();
     renderSheet();

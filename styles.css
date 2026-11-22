@@ -129,7 +129,7 @@ img { max-width: 100%; }
   position: fixed; left: 0; right: 0; bottom: calc(0px - var(--ios-gap)); z-index: 20;
   height: calc(var(--dock-h) + var(--safe-b));
   padding: 0 var(--gutter-r) var(--safe-b) var(--gutter-l);
-  display: grid; grid-template-columns: repeat(5, 1fr); align-items: center; justify-items: center;
+  display: grid; grid-template-columns: repeat(4, 1fr); align-items: center; justify-items: center;
   background: linear-gradient(to top, rgba(14,14,16,.98), rgba(22,22,25,.9));
   border-top: 1px solid var(--line);
   backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
@@ -624,3 +624,25 @@ button.person.mine:focus-visible { outline: 2px solid var(--brass-hi); outline-o
 .sheet.as-scroll .person.mine:not(.on) { border-color: rgba(122,90,42,.6); }
 .sheet.as-scroll .person.mine:not(.on) .p-state { color: #6b4a1c; }
 .sheet.as-scroll button.person.mine:focus-visible { outline-color: #7a5a2a; }
+
+/* Vial tabs on the vial picture: move between Outside, Indoor and Home without closing */
+.vibe-banner > .vial-tabs {
+  position: absolute; top: 14px; left: var(--gutter-l); right: 60px; z-index: 2;
+  display: flex; gap: 5px; flex-wrap: nowrap;
+}
+.vial-tab {
+  --c: var(--brass);
+  display: inline-flex; align-items: center; gap: 6px; min-height: 34px; white-space: nowrap;
+  padding: 5px 10px 3px; border-radius: 999px;
+  font: inherit; font-size: .74rem; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--ink); background: rgba(14,14,16,.55); border: 1px solid rgba(241,215,154,.25);
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  cursor: pointer; -webkit-tap-highlight-color: transparent;
+  transition: background-color .15s ease, border-color .15s ease, transform .12s ease;
+}
+.vial-tab::before { content: ""; width: 6px; height: 12px; border-radius: 2px; background: var(--c); opacity: .55; }
+.vial-tab[aria-selected="true"] { background: color-mix(in srgb, var(--c) 30%, rgba(14,14,16,.7)); border-color: var(--c); }
+.vial-tab[aria-selected="true"]::before { opacity: 1; }
+.vial-tab:active { transform: scale(.96); }
+.vial-tab:focus-visible { outline: 2px solid var(--brass-hi); outline-offset: 2px; }
+.vibe-banner { min-height: 230px; } /* room for the tabs above the vial name */
