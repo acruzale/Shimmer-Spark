@@ -446,7 +446,7 @@
   // over the title. Shrink them around their hook (they stay on the string) so they end above the title.
   // Installed iPhone app (picture behind the status bar): iOS reports the screen shorter by the status bar's
   // height, so the menu floats up. Measure what's missing and let the CSS move bottom-pinned things down.
-  let iosGap = 0;
+  let iosGap = 0, iosInfo = '';
   function measureIosGap() {
     const standalone = navigator.standalone === true || matchMedia('(display-mode: standalone)').matches;
     const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
@@ -455,7 +455,8 @@
       const portrait = innerHeight >= innerWidth;
       const fullHeight = portrait ? Math.max(screen.width, screen.height) : Math.min(screen.width, screen.height);
       gap = Math.round(fullHeight - innerHeight);
-      if (gap < 0 || gap > 80) gap = 0; // only correct a status-bar-sized gap
+      if (gap < 0 || gap > 160) gap = 0; // status bar (and on some iPhones the home-bar strip); ignore anything bigger
+      iosInfo = `screen ${fullHeight} · window ${innerHeight} · moved down ${gap}`;
     }
     iosGap = gap;
     document.documentElement.style.setProperty('--ios-gap', gap + 'px');
@@ -800,7 +801,8 @@
         ? 'In Safari, tap the Share button, then “Add to Home Screen”. It opens full screen like an app.'
         : 'In Chrome, open the ⋮ menu and choose “Install app” or “Add to Home screen”.'}</p>
       <p class="muted small" style="margin:0">On Android, once installed, Shimmer & Spark appears in the share menu. Long-press a link in Telegram or tap Share on a reel, pick Shimmer & Spark, and the add form opens with the link filled in. On iPhone, copy the link and use the Paste button in the add form.</p>
-      ${LIVE ? '<h3 class="sec-title">Account</h3><div class="btn-row"><button class="btn ghost" id="signOut">Sign out</button></div>' : ''}`;
+      ${LIVE ? '<h3 class="sec-title">Account</h3><div class="btn-row"><button class="btn ghost" id="signOut">Sign out</button></div>' : ''}
+      ${iosInfo ? `<p class="muted small" style="margin:0;opacity:.6">${esc(iosInfo)}</p>` : ''}`;
     setSheetGlow('#3fbf6f');
     $('#saveName', body).addEventListener('click', async () => {
       const v = $('#myName', body).value.trim(); if (!v) return toast('Type a name first');
@@ -1462,6 +1464,11 @@
     layoutVials();
     addEventListener('resize', () => { measureIosGap(); layoutVials(); });
     addEventListener('orientationchange', () => setTimeout(() => { measureIosGap(); layoutVials(); }, 300));
+    const remeasure = () => { measureIosGap(); layoutVials(); };
+    [300, 1200].forEach((ms) => setTimeout(remeasure, ms));
+    addEventListener('pageshow', remeasure);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) setTimeout(remeasure, 200); });
+    window.visualViewport?.addEventListener('resize', remeasure);
     store.onChange(renderAll);
     $('#demoChip').hidden = LIVE;
     try { afterAuth(await store.start()); }
