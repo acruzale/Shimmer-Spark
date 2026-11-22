@@ -584,27 +584,40 @@
     const ended = store.ideas.filter((i) => isExpired(i) && i.status === 'open');
     const section = (title, items, opts, hint) => items.length ? `<h3>${esc(title)}</h3>${hint ? `<p class="muted small" style="margin:-8px 0 0">${esc(hint)}</p>` : ''}<div class="cards">${items.map((i) => cardHTML(i, opts)).join('')}</div>` : '';
     const pn = p ? p.display_name : 'your partner';
-    const any = upcoming.length + past.length + ready.length + waiting.length + theirs.length + done.length + ending.length + ended.length;
     el.innerHTML = `<div class="panel-inner">
       <h2 id="plansTitle">Plans</h2>
       ${section('Ending soon', ending, { deadline: true }, 'Events with a last day. Check you have both decided before they close.')}
       ${section('Deadline passed', ended, { deadline: true }, 'These have closed. Open one to delete it or change its last day.')}
       ${section('Coming up', upcoming, { plan: true })}
       ${section('Did you go?', past, { plan: true }, 'Open one to mark it done or pick a new day.')}
-      ${section("You're both in", ready, {}, 'Pick a day and it gets a reminder.')}
+      <h3>You're both in</h3>
+      ${ready.length
+        ? `<p class="muted small" style="margin:-8px 0 0">Pick a day and it gets a reminder.</p><div class="cards">${ready.map((i) => cardHTML(i)).join('')}</div>`
+        : `<div class="empty"><p>When you both tap “I'm in” on an idea, it shows up here so you can pick a day.</p><button class="btn primary" data-act="home">Draw from a vial</button></div>`}
       ${section(`${pn} is in. Are you?`, theirs, {})}
       ${section(`Waiting on ${pn}`, waiting, {})}
-      <h3>Previous dates</h3>
-      <div class="memories-head">
-        <p class="memories-count">${done.length
-          ? `You've been on <b>${done.length}</b> ${done.length === 1 ? 'date' : 'dates'} together`
-          : 'Dates you go on will be kept here, so you can look back on them.'}</p>
-        <button class="btn" data-act="log-past">Add a date you went on</button>
-      </div>
-      ${done.length ? `<div class="cards">${done.map((i) => cardHTML(i, { memory: true })).join('')}</div>` : ''}
-      ${any ? '' : `<div class="empty"><p>When you both tap “I'm in” on an idea, it shows up here so you can pick a day.</p><button class="btn primary" data-act="home">Draw from a vial</button></div>`}
+      <details class="memories" id="memories" ${memoriesOpen ? 'open' : ''}>
+        <summary>
+          <span class="memories-title">Previous dates</span>
+          <span class="memories-count">${done.length
+            ? `<b>${done.length}</b> ${done.length === 1 ? 'date' : 'dates'} together`
+            : 'Nothing yet'}</span>
+          <span class="memories-chevron" aria-hidden="true"></span>
+        </summary>
+        <div class="memories-body">
+          <div class="memories-head">
+            <p class="muted small" style="margin:0">${done.length
+              ? `You've been on ${done.length} ${done.length === 1 ? 'date' : 'dates'} together. Newest first.`
+              : 'Dates you go on will be kept here, so you can look back on them.'}</p>
+            <button class="btn" data-act="log-past">Add a date you went on</button>
+          </div>
+          ${done.length ? `<div class="cards">${done.map((i) => cardHTML(i, { memory: true })).join('')}</div>` : ''}
+        </div>
+      </details>
     </div>`;
+    $('#memories', el).addEventListener('toggle', (e) => { memoriesOpen = e.target.open; });
   }
+  let memoriesOpen = false; // Previous dates starts closed; stays as you left it while the app is open
 
   function renderUs() {
     const el = $('#panel-us');

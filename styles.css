@@ -432,13 +432,29 @@ img { max-width: 100%; }
 .plan-date .d { font-family: var(--font-display); font-size: 1.6rem; line-height: 1; color: var(--brass-hi); }
 .plan-date .m { font-size: .72rem; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-soft); }
 .card.plan { grid-template-columns: 64px 1fr; }
-/* Previous dates */
-.memories-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; }
-.memories-count { margin: 0; color: var(--ink-soft); font-size: 1.02rem; }
-.memories-count b {
-  font-family: var(--font-display); font-weight: 400; font-size: 1.6rem; color: var(--brass-hi);
-  text-shadow: 0 0 14px rgba(241,215,154,.35); padding: 0 2px;
+/* Previous dates: a tap-to-open section */
+.memories { margin-top: 8px; border: 1px solid var(--line); border-radius: 14px; background: var(--glass-2); }
+.memories summary {
+  list-style: none; cursor: pointer; display: flex; align-items: center; gap: 12px;
+  padding: 14px 16px 12px; min-height: 52px;
 }
+.memories summary::-webkit-details-marker { display: none; }
+.memories-title {
+  font-family: var(--font-display); font-size: .95rem; letter-spacing: .16em; text-transform: uppercase; color: var(--ink-soft);
+}
+.memories-count { margin-left: auto; color: var(--ink-faint); font-size: .9rem; white-space: nowrap; }
+.memories-count b {
+  font-family: var(--font-display); font-weight: 400; font-size: 1.3rem; color: var(--brass-hi);
+  text-shadow: 0 0 12px rgba(241,215,154,.35); padding-right: 2px;
+}
+.memories-chevron {
+  width: 10px; height: 10px; flex: none; border-right: 2px solid var(--brass); border-bottom: 2px solid var(--brass);
+  transform: rotate(45deg) translate(-2px, -2px); transition: transform .2s ease;
+}
+.memories[open] .memories-chevron { transform: rotate(-135deg) translate(-2px, -2px); }
+.memories[open] summary { border-bottom: 1px solid var(--line); }
+.memories-body { padding: 14px 12px 12px; display: flex; flex-direction: column; gap: 12px; }
+.memories-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; }
 .plan-date.went { border-color: rgba(241,215,154,.5); background: radial-gradient(circle at 50% 30%, rgba(241,215,154,.14), rgba(0,0,0,.25)); }
 .memory-snippet { font-size: .88rem; color: var(--ink-soft); font-style: italic; overflow-wrap: anywhere; }
 .memory {
