@@ -1261,14 +1261,32 @@
       <h2 class="sheet-title">Pick a day</h2>
       <p class="sheet-sub">${esc(i.title)}</p>
       <form id="planForm" class="gate">
-        <div class="field"><label for="pDate">Day</label><input class="input" id="pDate" type="date" required value="${esc(def)}" min="${esc(today())}"${hasLiveDeadline(i) ? ` max="${esc(i.deadline)}"` : ''}>
+        <div class="field"><label for="pDate">Day</label><div class="input-row"><input class="input" id="pDate" type="date" value="${esc(def)}" min="${esc(today())}"${hasLiveDeadline(i) ? ` max="${esc(i.deadline)}"` : ''}>
+          <button type="button" class="btn ghost clear-date" data-clear="pDate">Clear</button></div>
           ${hasLiveDeadline(i) ? `<p class="hint">${esc(deadlineText(i, true))}, so pick a day before then.</p>` : ''}</div>
-        <div class="field"><label for="pTime">Time (optional)</label><input class="input" id="pTime" type="time" value="${esc(i.planned_time || '')}"></div>
+        <div class="field"><label for="pTime">Time (optional)</label><div class="input-row"><input class="input" id="pTime" type="time" value="${esc(i.planned_time || '')}">
+          <button type="button" class="btn ghost clear-date" data-clear="pTime"${i.planned_time ? '' : ' hidden'}>Clear</button></div></div>
         <div class="btn-row stretch"><button class="btn primary" type="submit">Save the date</button></div>
+        <div class="btn-row stretch"><button class="btn ghost" type="button" id="noDayYet">${i.status === 'planned' ? 'Remove the day' : 'Not yet'}</button></div>
       </form>`;
+    // iOS "Reset" only puts the old value back, so each field gets a real Clear button.
+    $$('[data-clear]', body).forEach((b) => {
+      const inp = $('#' + b.dataset.clear, body);
+      inp.addEventListener('input', () => { b.hidden = !inp.value; });
+      b.addEventListener('click', () => { inp.value = ''; inp.removeAttribute('value'); b.hidden = true; });
+    });
+    // Both in but no day yet: go back without saving, or take a day you already saved off again.
+    $('#noDayYet', body).addEventListener('click', async () => {
+      if (i.status !== 'planned') return openSheet('detail', { id: i.id });
+      try {
+        await store.update(i.id, { status: 'open', planned_for: null, planned_time: null });
+        toast('Day removed. It stays in Both in.');
+        openSheet('detail', { id: i.id });
+      } catch (ex) { toast(ex.message || 'Could not save that'); }
+    });
     $('#planForm', body).addEventListener('submit', async (e) => {
       e.preventDefault();
-      const d = $('#pDate', body).value; if (!d) return toast('Choose a day');
+      const d = $('#pDate', body).value; if (!d) return toast('Choose a day, or tap “Not yet”');
       try {
         await store.update(i.id, { status: 'planned', planned_for: d, planned_time: $('#pTime', body).value || null });
         toast('Saved the date');
