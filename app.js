@@ -835,7 +835,7 @@
     $('#sheet').hidden = false; $('#sheetBackdrop').hidden = false;
     $('#sheetClose').hidden = locked;
     // An opened idea unrolls as a long parchment scroll, like the one from a vial.
-    $('#sheet').classList.toggle('as-scroll', type === 'detail');
+    $('#sheet').classList.toggle('as-scroll', type === 'detail' || type === 'plan' || type === 'done');
     setSheetGlow(null);
     if (DOCK_FOR[type]) setDock(DOCK_FOR[type]);
     renderSheet(true);

@@ -767,3 +767,12 @@ button.person.mine:focus-visible { outline: 2px solid var(--brass-hi); outline-o
 .sheet.as-scroll .not-for-me:focus-visible { outline-color: #9a2a1e; }
 .draw-result .not-for-me { align-self: center; margin-top: 2px; border-color: rgba(154,42,30,.55); color: #9a2a1e; }
 .draw-result .not-for-me.on { background: rgba(230,110,85,.25); border-color: #b8331f; color: #7a1a0c; font-weight: 600; }
+
+/* Pick a day and the memory form sit on the same parchment as the idea scroll. */
+.sheet.as-scroll .sheet-sub { color: #5a4220; margin-top: -4px; }
+.sheet.as-scroll .field > label, .sheet.as-scroll .field > .label { color: #7a6040; }
+.sheet.as-scroll .input, .sheet.as-scroll .textarea {
+  color: #2a1e0c; background: rgba(255,250,235,.6); border-color: rgba(59,42,18,.35); color-scheme: light;
+}
+.sheet.as-scroll .input:focus, .sheet.as-scroll .textarea:focus { border-color: #9a7230; box-shadow: 0 0 0 3px rgba(154,114,48,.18); }
+.sheet.as-scroll .textarea::placeholder { color: #9a8462; }
