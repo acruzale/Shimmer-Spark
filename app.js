@@ -851,6 +851,9 @@
     else if (i.cover_url) mediaHTML = `<img class="cover" src="${esc(i.cover_url)}" alt="">`;
 
     const person = (mem, on) => `<div class="person${on ? ' on' : ''}"><span class="p-name">${esc(mem.display_name)}</span><span class="p-state">${on ? "I'm in" : 'Not yet'}</span></div>`;
+    // Your own box is the switch: tap to say you're in, tap again to take it back.
+    const myBox = (mem, on) => `<button type="button" class="person mine${on ? ' on' : ''}" data-interest="${esc(i.id)}" aria-pressed="${on}" aria-label="${on ? "You're in. Tap to take it back" : "Tap if you're in"}">
+      <span class="p-name">${esc(mem.display_name)}</span><span class="p-state">${on ? "I'm in" : "Tap if you're in"}</span></button>`;
     let planBlock = '';
     if (i.status === 'planned' && i.planned_for) {
       planBlock = `<div class="match-banner">${esc(fmtDate(i.planned_for, { weekday: 'long', month: 'long', day: 'numeric' }))}${i.planned_time ? ' · ' + esc(fmtTime(i.planned_time)) : ''}</div>
@@ -887,8 +890,7 @@
       ${media && link ? `<a class="btn ghost" href="${esc(link)}" target="_blank" rel="noopener">Open in ${esc(media.site)}</a>` : ''}
       ${link && !media ? `<a class="r-place" href="${esc(link)}" target="_blank" rel="noopener">${esc(hostOf(link))}</a>` : ''}
       <hr class="scroll-rule">
-      ${i.status !== 'done' ? `<div class="interest">${person(m, meIn(i))}${p ? person(p, partnerIn(i)) : `<div class="person"><span class="p-name">Partner</span><span class="p-state muted">Hasn't joined yet</span></div>`}</div>
-        <div class="btn-row stretch"><button class="btn ${meIn(i) ? '' : 'primary'}" data-interest="${esc(i.id)}">${meIn(i) ? "I'm in ✓ (tap to take back)" : "I'm in"}</button></div>` : ''}
+      ${i.status !== 'done' ? `<div class="interest">${myBox(m, meIn(i))}${p ? person(p, partnerIn(i)) : `<div class="person"><span class="p-name">Partner</span><span class="p-state muted">Hasn't joined yet</span></div>`}</div>` : ''}
       ${planBlock}
       ${i.status === 'open' ? '<div class="btn-row stretch"><button class="btn ghost" id="wentBtn">We already went on this date</button></div>' : ''}
       <hr class="scroll-rule">
