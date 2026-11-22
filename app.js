@@ -30,9 +30,9 @@
   // VIBE_FOCUS picks which part of a picture stays in view when it is cropped to the banner.
   // VIBE_LIFT brightens pictures that are too dark under the banner's fade.
   // Bump PICS_VERSION whenever a picture file is replaced, so phones load the new one.
-  const PICS_VERSION = 5;
-  const VIBE_LIFT = { cozy: 1.6, 'plans-coming': 1.35 };
-  const VIBE_FOCUS = { chill: '50% 50%', hiking: '42% 55%', active: '55% 50%', daytrip: '47% 100%', leisure: '55% 30%', 'indoor-active': '50% 40%', cozy: '62% 50%', culinary: '62% 40%', projects: '50% 35%', outside: '42% 45%', indoor: '50% 45%', home: '48% 30%', 'plans-coming': '50% 30%', 'plans-both': '50% 40%', 'plans-theirs': '50% 40%', 'plans-waiting': '50% 45%', 'plans-memories': '50% 40%', us: '45% 40%' };
+  const PICS_VERSION = 6;
+  const VIBE_LIFT = { cozy: 1.6, 'plans-ending': 1.35 };
+  const VIBE_FOCUS = { chill: '50% 50%', hiking: '42% 55%', active: '55% 50%', daytrip: '47% 100%', leisure: '55% 30%', 'indoor-active': '50% 40%', cozy: '62% 50%', culinary: '62% 40%', projects: '50% 35%', outside: '42% 45%', indoor: '50% 45%', home: '48% 30%', 'plans-ending': '50% 30%', 'plans-both': '50% 40%', 'plans-theirs': '50% 40%', 'plans-waiting': '50% 45%', 'plans-memories': '50% 40%', us: '45% 40%' };
   // Where each vial hangs on the photo's string of lights (picture coordinates, 1500 x 1000).
   const VIAL_POS = { outside: { x: 600, wire: 30 }, indoor: { x: 750, wire: 62 }, home: { x: 900, wire: 38 } };
   const stringY = (x) => 75 + (x - 600) * 0.173; // traced from the photo's light string between x 600 and 900
@@ -632,8 +632,7 @@
 
   // ---- Plans: one section per tab, each with its own colour and picture
   const PLAN_TABS = [
-    { key: 'ending', label: 'Ending soon', color: '#c23a5a', pic: null },
-    { key: 'coming', label: 'Coming up', color: '#e3a948', pic: 'plans-coming' },
+    { key: 'ending', label: 'Ending soon', color: '#c23a5a', pic: 'plans-ending' },
     { key: 'both', label: 'Both in', color: '#2fd39a', pic: 'plans-both' },
     { key: 'theirs', label: 'Are you in?', color: '#4f7bff', pic: 'plans-theirs' },
     { key: 'waiting', label: 'Waiting', color: '#a63bf2', pic: 'plans-waiting' },
@@ -658,8 +657,7 @@
   }
   function defaultPlanTab(g) {
     if (g.ending.length || g.ended.length) return 'ending';
-    if (g.upcoming.length || g.past.length) return 'coming';
-    if (g.ready.length) return 'both';
+    if (g.upcoming.length || g.past.length || g.ready.length) return 'both';
     if (g.theirs.length) return 'theirs';
     return 'both';
   }
@@ -667,7 +665,7 @@
     const g = planGroups();
     if (!a.tab) a.tab = defaultPlanTab(g);
     const p = partner(); const pn = p ? p.display_name : 'your partner';
-    const counts = { ending: g.ending.length + g.ended.length, coming: g.upcoming.length + g.past.length, both: g.ready.length, theirs: g.theirs.length, waiting: g.waiting.length, memories: g.done.length };
+    const counts = { ending: g.ending.length + g.ended.length, both: g.upcoming.length + g.past.length + g.ready.length, theirs: g.theirs.length, waiting: g.waiting.length, memories: g.done.length };
     const tab = PLAN_TABS.find((t) => t.key === a.tab) || PLAN_TABS[2];
     const sec = (title, items, opts, hint) => items.length
       ? `<h3 class="sec-title">${esc(title)}</h3>${hint ? `<p class="muted small" style="margin:-8px 0 0">${esc(hint)}</p>` : ''}<div class="cards">${items.map((i) => cardHTML(i, opts)).join('')}</div>` : '';
@@ -679,14 +677,12 @@
         html: (counts.ending ? (g.ending.length ? `<div class="cards">${g.ending.map((i) => cardHTML(i, { deadline: true })).join('')}</div>` : '') + sec('Deadline passed', g.ended, { deadline: true }, 'These have closed. Open one to delete it or change its last day.')
           : empty('Nothing with a last day right now. When you save a time-limited event, add its last day and it shows up here.')),
       },
-      coming: {
-        sub: 'The dates you have picked a day for.',
-        html: (counts.coming ? (g.upcoming.length ? `<div class="cards">${g.upcoming.map((i) => cardHTML(i, { plan: true })).join('')}</div>` : '') + sec('Did you go?', g.past, { plan: true }, 'Open one to mark it done or pick a new day.')
-          : empty("Nothing scheduled yet. When you're both in on an idea, pick a day and it shows up here.")),
-      },
       both: {
-        sub: 'Pick a day and it gets a reminder.',
-        html: g.ready.length ? `<div class="cards">${g.ready.map((i) => cardHTML(i)).join('')}</div>`
+        // Dated ones first (soonest first, with their date), then the ones still waiting for a day (with their letter).
+        sub: g.ready.length ? 'Pick a day for the ones without a date and it gets a reminder.' : 'Ideas you are both in on, with the day you picked.',
+        html: (g.upcoming.length || g.ready.length || g.past.length)
+          ? `${(g.upcoming.length || g.ready.length) ? `<div class="cards">${g.upcoming.map((i) => cardHTML(i, { plan: true })).join('')}${g.ready.map((i) => cardHTML(i)).join('')}</div>` : ''}
+             ${sec('Did you go?', g.past, { plan: true }, 'Open one to mark it done or pick a new day.')}`
           : empty("When you both tap “I'm in” on an idea, it shows up here so you can pick a day.", drawBtn),
       },
       theirs: {
