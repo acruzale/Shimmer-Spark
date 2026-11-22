@@ -4,7 +4,7 @@
 
 Our date ideas, sorted into three glowing vials: **Outside**, **Indoor** and **Staying Home**.
 Tap a vial, pick tonight's vibe and shake it to draw a date, or browse the list. When you both tap
-"I'm in", pick a day and add it to your calendars for a reminder.
+"I'm in", pick a day for it.
 
 Without Supabase keys the app runs in **demo mode** (data stays in that browser only, and the Us tab
 lets you switch between "You" and "Partner" to try the flow).
@@ -90,11 +90,9 @@ picture. Your date ideas stay private: they live in Supabase behind sign-in.
 Instagram, TikTok and YouTube links play inside the app. Adding a screenshot as the cover helps you
 recognize the idea in the list.
 
-### Reminders
+### Planned dates
 
-When a date has a day, **Add to calendar** saves a calendar event with a reminder at 9:00 that morning
-(and 2 hours before, if you set a time). **Google Calendar** opens it there instead. Each of you adds it
-on your own phone.
+When you're both in, pick a day in the app. The date shows on the idea, in Plans under Both in, and on the home screen on the day and the day before. Everything stays in the app, so a change by either of you shows up for both.
 
 ## Changing things later
 

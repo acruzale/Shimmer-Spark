@@ -711,7 +711,7 @@
       },
       both: {
         // Dated ones first (soonest first, with their date), then the ones still waiting for a day (with their letter).
-        sub: g.ready.length ? 'Pick a day for the ones without a date and it gets a reminder.' : 'Ideas you are both in on, with the day you picked.',
+        sub: g.ready.length ? 'Pick a day for the ones without a date.' : 'Ideas you are both in on, with the day you picked.',
         html: (g.upcoming.length || g.ready.length || g.past.length)
           ? `${(g.upcoming.length || g.ready.length) ? `<div class="cards">${g.upcoming.map((i) => cardHTML(i, { plan: true })).join('')}${g.ready.map((i) => cardHTML(i)).join('')}</div>` : ''}
              ${sec('Did you go?', g.past, { plan: true }, 'Open one to mark it done or pick a new day.')}`
@@ -1031,13 +1031,8 @@
     let planBlock = '';
     if (i.status === 'planned' && i.planned_for) {
       planBlock = `<div class="match-banner">${esc(fmtDate(i.planned_for, { weekday: 'long', month: 'long', day: 'numeric' }))}${i.planned_time ? ' · ' + esc(fmtTime(i.planned_time)) : ''}</div>
-        <p class="hint">Add it to your calendars for a reminder that morning${i.planned_time ? ' and 2 hours before' : ''}. Each of you can add it on your own phone.</p>
+        <div class="btn-row stretch"><button class="btn primary" id="doneBtn">We went on this date</button></div>
         <div class="btn-row stretch">
-          <button class="btn primary" id="icsBtn">Add to calendar</button>
-          <a class="btn" href="${esc(gcalURL(i))}" target="_blank" rel="noopener">Google Calendar</a>
-        </div>
-        <div class="btn-row stretch">
-          <button class="btn" id="doneBtn">We went on this date</button>
           <button class="btn ghost" id="replanBtn">Change day</button>
           <button class="btn ghost" id="unplanBtn">Unschedule</button>
         </div>`;
@@ -1076,7 +1071,6 @@
     $$('[data-interest]', body).forEach((b) => b.addEventListener('click', () => toggleInterest(b.dataset.interest)));
     $('#planBtn', body)?.addEventListener('click', () => openSheet('plan', { id: i.id }));
     $('#replanBtn', body)?.addEventListener('click', () => openSheet('plan', { id: i.id }));
-    $('#icsBtn', body)?.addEventListener('click', () => downloadICS(i));
     $('#doneBtn', body)?.addEventListener('click', () => openSheet('done', { id: i.id }));
     $('#wentBtn', body)?.addEventListener('click', () => openSheet('done', { id: i.id }));
     $('#memoryBtn', body)?.addEventListener('click', () => openSheet('done', { id: i.id }));
@@ -1236,7 +1230,7 @@
       const d = $('#pDate', body).value; if (!d) return toast('Choose a day');
       try {
         await store.update(i.id, { status: 'planned', planned_for: d, planned_time: $('#pTime', body).value || null });
-        toast('Saved. Add it to your calendar for the reminder.');
+        toast('Saved the date');
         openSheet('detail', { id: i.id });
       } catch (ex) { toast(ex.message); }
     });
@@ -1348,53 +1342,6 @@
         if (a.mode !== 'join') openSheet('us');
       } catch (ex) { err.textContent = ex.message; err.hidden = false; }
     });
-  }
-
-  // ---------------------------------------------------------------- calendar
-  function icsEscape(s) { return String(s || '').replace(/\\/g, '\\\\').replace(/\n/g, '\\n').replace(/([,;])/g, '\\$1'); }
-  function stamp(d) { return d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, ''); }
-  function compact(iso) { return iso.replace(/-/g, ''); }
-  function timedRange(i) {
-    const [h, m] = i.planned_time.split(':').map(Number);
-    const s = new Date(i.planned_for + 'T00:00:00'); s.setHours(h, m || 0, 0, 0);
-    const e = new Date(s.getTime() + 2 * 3600 * 1000);
-    const f = (d) => `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}T${pad(d.getHours())}${pad(d.getMinutes())}00`;
-    return [f(s), f(e)];
-  }
-  function calDetails(i) { return [i.notes, safeUrl(i.link)].filter(Boolean).join('\n\n'); }
-  function buildICS(i) {
-    const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Shimmer and Spark//EN', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH', 'BEGIN:VEVENT',
-      `UID:${i.id}@shimmer-spark`, `DTSTAMP:${stamp(new Date())}`];
-    if (i.planned_time) { const [s, e] = timedRange(i); lines.push(`DTSTART:${s}`, `DTEND:${e}`); }
-    else lines.push(`DTSTART;VALUE=DATE:${compact(i.planned_for)}`, `DTEND;VALUE=DATE:${compact(addDays(i.planned_for, 1))}`);
-    lines.push(`SUMMARY:${icsEscape('Date: ' + i.title)}`);
-    if (i.place) lines.push(`LOCATION:${icsEscape(i.place)}`);
-    const det = calDetails(i); if (det) lines.push(`DESCRIPTION:${icsEscape(det)}`);
-    if (safeUrl(i.link)) lines.push(`URL:${safeUrl(i.link)}`);
-    // Morning-of reminder (9:00 for all-day; for timed, 9:00 same day expressed relative to start) plus 2 h before timed dates.
-    if (i.planned_time) {
-      const [h, m] = i.planned_time.split(':').map(Number);
-      const mins = h * 60 + (m || 0) - 9 * 60;
-      if (mins > 150) lines.push('BEGIN:VALARM', 'ACTION:DISPLAY', `DESCRIPTION:${icsEscape('Date day: ' + i.title)}`, `TRIGGER:-PT${mins}M`, 'END:VALARM');
-      lines.push('BEGIN:VALARM', 'ACTION:DISPLAY', `DESCRIPTION:${icsEscape('In 2 hours: ' + i.title)}`, 'TRIGGER:-PT2H', 'END:VALARM');
-    } else {
-      lines.push('BEGIN:VALARM', 'ACTION:DISPLAY', `DESCRIPTION:${icsEscape('Date day: ' + i.title)}`, 'TRIGGER:PT9H', 'END:VALARM');
-    }
-    lines.push('END:VEVENT', 'END:VCALENDAR');
-    return lines.join('\r\n');
-  }
-  function downloadICS(i) {
-    const blob = new Blob([buildICS(i)], { type: 'text/calendar;charset=utf-8' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = (i.title.replace(/[^\w]+/g, '-').replace(/^-|-$/g, '').toLowerCase() || 'date') + '.ics';
-    document.body.append(a); a.click();
-    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
-  }
-  function gcalURL(i) {
-    const dates = i.planned_time ? timedRange(i).join('/') : `${compact(i.planned_for)}/${compact(addDays(i.planned_for, 1))}`;
-    const q = new URLSearchParams({ action: 'TEMPLATE', text: 'Date: ' + i.title, dates, details: calDetails(i), location: i.place || '' });
-    return 'https://calendar.google.com/calendar/render?' + q.toString();
   }
 
   // ---------------------------------------------------------------- wiring

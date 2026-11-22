@@ -8,24 +8,24 @@ web
 
 ## Users
 
-One couple: the owner and her partner. Nobody else is planned to use it. Each signs in with their own account (Google or email and password) and both share one private set of vials, joined with an invite code. They use it mostly on their phones, installed to the home screen, often in the evening while deciding what to do.
+One couple: the owner and their partner. Nobody else is planned to use it. Each signs in with their own account (Google or email and password) and both share one private set of vials, joined with an invite code. They use it mostly on their phones, installed to the home screen, often in the evening while deciding what to do.
 
 ## Product Purpose
 
-Shimmer & Spark is a private app for one couple to collect date ideas, mostly reels shared from Instagram and Telegram. Ideas go into three vials (Outside, Indoor, Staying Home), each with sub-vibes. They draw one at random by vibe, or pick from the list. When both are "in" on an idea, they pick a day and add a calendar reminder. Past dates are kept with memories, so they remember the dates they've had and don't feel like they never go out.
+Shimmer & Spark is a private app for one couple to collect date ideas, mostly reels shared from Instagram and Telegram. Ideas go into three vials (Outside, Indoor, Staying Home), each with sub-vibes. They draw one at random by vibe, or pick from the list. When both are "in" on an idea, they pick a day for it in the app. Past dates are kept with memories, so they remember the dates they've had and don't feel like they never go out.
 
 Success: they actually go on the dates they save, and can look back on the ones they've had.
 
 ## Positioning
 
-It replaces a set of real jars with coloured paper slips: one jar per energy (Outside, Indoor, Staying Home), and a slip colour per vibe. The digital version keeps that ritual (reach into the jar that fits tonight's energy and draw) and adds what jars cannot: the source reel, the place, both partners saying "I'm in", a day with a reminder, and a record of dates already had.
+It replaces a set of real jars with coloured paper slips: one jar per energy (Outside, Indoor, Staying Home), and a slip colour per vibe. The digital version keeps that ritual (reach into the jar that fits tonight's energy and draw) and adds what jars cannot: the source reel, the place, both partners saying "I'm in", a picked day, and a record of dates already had.
 
 ## Operating Context
 
-- Ideas arrive as Instagram reels and other links, usually shared in Telegram. They are added by pasting a link (or via the Android share menu once installed), with an optional screenshot as a cover.
+- Ideas arrive as Instagram reels and other links, usually shared in Telegram. They are added by pasting a link (or via the Android share menu once installed). A link is enough; there is no cover picture.
 - Places are saved as a name and an optional Google Maps link.
 - Some ideas are time-limited events (seasonal ice rinks, exhibitions) with a last day.
-- Reminders go to each partner's own calendar (.ics file or Google Calendar link).
+- Planned days stay inside the app (no calendar export), so a change by either partner shows up for both.
 
 ## Capabilities and Constraints
 
