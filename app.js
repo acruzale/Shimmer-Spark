@@ -31,8 +31,8 @@
   // VIBE_LIFT brightens pictures that are too dark under the banner's fade.
   // Bump PICS_VERSION whenever a picture file is replaced, so phones load the new one.
   const PICS_VERSION = 4;
-  const VIBE_LIFT = { cozy: 1.6 };
-  const VIBE_FOCUS = { chill: '50% 50%', hiking: '42% 55%', active: '55% 50%', daytrip: '47% 100%', leisure: '55% 30%', 'indoor-active': '50% 40%', cozy: '62% 50%', culinary: '62% 40%', projects: '50% 35%', outside: '42% 45%', indoor: '50% 45%', home: '48% 30%' };
+  const VIBE_LIFT = { cozy: 1.6, 'plans-coming': 1.35 };
+  const VIBE_FOCUS = { chill: '50% 50%', hiking: '42% 55%', active: '55% 50%', daytrip: '47% 100%', leisure: '55% 30%', 'indoor-active': '50% 40%', cozy: '62% 50%', culinary: '62% 40%', projects: '50% 35%', outside: '42% 45%', indoor: '50% 45%', home: '48% 30%', 'plans-coming': '50% 30%', 'plans-both': '50% 40%', 'plans-theirs': '50% 40%', 'plans-waiting': '50% 45%', 'plans-memories': '50% 45%', us: '45% 40%' };
   // Where each vial hangs on the photo's string of lights (picture coordinates, 1500 x 1000).
   const VIAL_POS = { outside: { x: 600, wire: 30 }, indoor: { x: 750, wire: 62 }, home: { x: 900, wire: 38 } };
   const stringY = (x) => 75 + (x - 600) * 0.173; // traced from the photo's light string between x 600 and 900
@@ -491,14 +491,9 @@
   }
 
   // ---------------------------------------------------------------- views
-  let view = 'home';
-
-  function setView(v) {
-    view = v;
-    $$('.dock-btn').forEach((b) => { if (b.dataset.view === v) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
-    ['plans', 'us'].forEach((p) => { $('#panel-' + p).hidden = p !== v; });
-    if (v === 'plans') renderPlans();
-    if (v === 'us') renderUs();
+  // The menu shows which card is open: Vials (the home scene and vial cards), Plans or Us.
+  function setDock(tab) {
+    $$('.dock-btn').forEach((b) => { if (b.dataset.view === tab) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
   }
 
   // Previous dates: the day you went (older entries only have the planned day).
@@ -579,110 +574,186 @@
     </button>`;
   }
 
-  function renderPlans() {
-    const el = $('#panel-plans');
-    const t = today();
-    const planned = store.ideas.filter((i) => i.status === 'planned' && i.planned_for);
-    const upcoming = planned.filter((i) => i.planned_for >= t).sort((a, b) => (a.planned_for + (a.planned_time || '')).localeCompare(b.planned_for + (b.planned_time || '')));
-    const past = planned.filter((i) => i.planned_for < t);
-    const ready = store.ideas.filter((i) => i.status === 'open' && bothIn(i));
-    const p = partner();
-    // Ideas you're in on that still need your partner, including before they've joined.
-    const waiting = store.ideas.filter((i) => i.status === 'open' && meIn(i) && !partnerIn(i));
-    const theirs = p ? store.ideas.filter((i) => i.status === 'open' && partnerIn(i) && !meIn(i)) : [];
-    const done = store.ideas.filter((i) => i.status === 'done')
-      .sort((a, b) => (wentOnDate(b) || b.created_at.slice(0, 10)).localeCompare(wentOnDate(a) || a.created_at.slice(0, 10)));
-    const ending = store.ideas.filter(hasLiveDeadline).sort((a, b) => a.deadline.localeCompare(b.deadline));
-    const ended = store.ideas.filter((i) => isExpired(i) && i.status === 'open');
-    const section = (title, items, opts, hint) => items.length ? `<h3>${esc(title)}</h3>${hint ? `<p class="muted small" style="margin:-8px 0 0">${esc(hint)}</p>` : ''}<div class="cards">${items.map((i) => cardHTML(i, opts)).join('')}</div>` : '';
-    const pn = p ? p.display_name : 'your partner';
-    el.innerHTML = `<div class="panel-inner">
-      <h2 id="plansTitle">Plans</h2>
-      ${section('Ending soon', ending, { deadline: true }, 'Events with a last day. Check you have both decided before they close.')}
-      ${section('Deadline passed', ended, { deadline: true }, 'These have closed. Open one to delete it or change its last day.')}
-      ${section('Coming up', upcoming, { plan: true })}
-      ${section('Did you go?', past, { plan: true }, 'Open one to mark it done or pick a new day.')}
-      <h3>You're both in</h3>
-      ${ready.length
-        ? `<p class="muted small" style="margin:-8px 0 0">Pick a day and it gets a reminder.</p><div class="cards">${ready.map((i) => cardHTML(i)).join('')}</div>`
-        : `<div class="empty"><p>When you both tap “I'm in” on an idea, it shows up here so you can pick a day.</p><button class="btn primary" data-act="home">Draw from a vial</button></div>`}
-      ${foldSection('theirs', `${pn} is in. Are you?`, theirs, 'Tap one to say if you are in too.')}
-      ${foldSection('waiting', `Waiting on ${pn}`, waiting, p
-        ? `Ideas you said yes to. They move up once ${pn} is in too.`
-        : 'Ideas you said yes to. Your partner has not joined yet: send them the invite code from the Us tab.')}
-      <details class="memories" data-fold="memories" ${foldOpen.memories ? 'open' : ''}>
-        <summary>
-          <span class="memories-title">Previous dates</span>
-          <span class="memories-count">${done.length
-            ? `<b>${done.length}</b> ${done.length === 1 ? 'date' : 'dates'} together`
-            : 'Nothing yet'}</span>
-          <span class="memories-chevron" aria-hidden="true"></span>
-        </summary>
-        <div class="memories-body">
-          <div class="memories-head">
-            <p class="muted small" style="margin:0">${done.length
-              ? `You've been on ${done.length} ${done.length === 1 ? 'date' : 'dates'} together. Newest first.`
-              : 'Dates you go on will be kept here, so you can look back on them.'}</p>
-            <button class="btn" data-act="log-past">Add a date you went on</button>
-          </div>
-          ${done.length ? `<div class="cards">${done.map((i) => cardHTML(i, { memory: true })).join('')}</div>` : ''}
-        </div>
-      </details>
-    </div>`;
-    $$('details[data-fold]', el).forEach((d) => d.addEventListener('toggle', () => { foldOpen[d.dataset.fold] = d.open; }));
+  // A card's top: a sticky bar (tabs, or a title once scrolled) over a hero picture banner.
+  const picUrl = (pic) => `assets/vibes/${pic}.jpg?v=${PICS_VERSION}`;
+  function bannerImg(pic) {
+    if (!pic) return '';
+    return `<img src="${picUrl(pic)}" alt="" style="object-position:${VIBE_FOCUS[pic] || '50% 50%'};${VIBE_LIFT[pic] ? `filter:brightness(${VIBE_LIFT[pic]}) saturate(1.1)` : ''}" onerror="this.remove()">`;
   }
-  // Tap-to-open sections in Plans. These are the starting states; they stay as you leave them while the app is open.
-  const foldOpen = { theirs: true, waiting: false, memories: false };
-  function foldSection(key, title, items, hint) {
-    if (!items.length) return '';
-    return `<details class="memories" data-fold="${key}" ${foldOpen[key] ? 'open' : ''}>
-      <summary>
-        <span class="memories-title">${esc(title)}</span>
-        <span class="memories-count"><b>${items.length}</b> ${items.length === 1 ? 'idea' : 'ideas'}</span>
-        <span class="memories-chevron" aria-hidden="true"></span>
-      </summary>
-      <div class="memories-body">
-        ${hint ? `<p class="muted small" style="margin:0">${esc(hint)}</p>` : ''}
-        <div class="cards">${items.map((i) => cardHTML(i)).join('')}</div>
+  function cardTop({ pic, color, tabs = '', headTitle = '', title, titleColor, sub }) {
+    return `<div class="sheet-head" style="${pic ? `--head-img:url('${picUrl(pic)}');` : ''}--c:${color}">
+        ${tabs}${headTitle ? `<span class="head-title">${esc(headTitle)}</span>` : ''}
       </div>
-    </details>`;
+      <div class="vibe-banner" style="--c:${color}">
+        ${bannerImg(pic)}
+        <h2 class="sheet-title" style="color:${titleColor || 'var(--brass-hi)'}">${esc(title)}</h2>
+        ${sub ? `<p class="sheet-sub">${esc(sub)}</p>` : ''}
+      </div>`;
+  }
+  // Slide the banner up under the sticky bar, so the picture fills the card's top edge.
+  function mountCardTop(body) {
+    const head = $('.sheet-head', body); const banner = $('.vibe-banner', body);
+    if (!head || !banner) return;
+    const row = $('.vial-tabs', head); const on = row && $('.vial-tab[aria-selected="true"]', row);
+    if (on && on.offsetLeft + on.offsetWidth > row.clientWidth - 70) row.scrollLeft = Math.max(0, on.offsetLeft - 24); // only when it's out of sight
+    const gap = parseFloat(getComputedStyle(body).rowGap) || 0;
+    banner.style.marginTop = `-${head.offsetHeight + gap}px`;
+    banner.style.minHeight = `${head.offsetHeight + 170}px`;
+    updateStuck(body);
+  }
+  // Once the picture has scrolled away, the bar fills with a blurred copy of it.
+  function updateStuck(body) {
+    const head = $('.sheet-head', body); const banner = $('.vibe-banner', body);
+    if (!head || !banner) return;
+    head.classList.toggle('is-stuck', body.scrollTop > banner.offsetHeight - head.offsetHeight * 2);
+  }
+  // Swipe left or right on a banner to step through tabs.
+  function bindSwipe(el, step) {
+    let touch = null;
+    el.addEventListener('touchstart', (e) => { const t = e.touches[0]; touch = { x: t.clientX, y: t.clientY }; }, { passive: true });
+    el.addEventListener('touchend', (e) => {
+      if (!touch) return; const t = e.changedTouches[0];
+      const dx = t.clientX - touch.x, dy = t.clientY - touch.y; touch = null;
+      if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) step(dx < 0 ? 1 : -1);
+    }, { passive: true });
+  }
+  function tabsHTML(items, current) {
+    return `<div class="vial-tabs" role="tablist">${items.map((t) => `<button type="button" role="tab" class="vial-tab" style="--c:${t.color}" data-tab="${t.key}" aria-selected="${t.key === current}" tabindex="${t.key === current ? 0 : -1}">${esc(t.label)}${t.count ? `<span class="tab-count">${t.count}</span>` : ''}</button>`).join('')}</div>`;
+  }
+  function bindTabs(body, keys, current, go) {
+    const step = (dir) => { const k = keys[keys.indexOf(current) + dir]; if (k) go(k); };
+    $$('.vial-tab', body).forEach((t) => t.addEventListener('click', () => go(t.dataset.tab)));
+    $('.vial-tabs', body)?.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight') { e.preventDefault(); step(1); }
+      if (e.key === 'ArrowLeft') { e.preventDefault(); step(-1); }
+    });
+    const banner = $('.vibe-banner', body); if (banner) bindSwipe(banner, step);
   }
 
-  function renderUs() {
-    const el = $('#panel-us');
+  // ---- Plans: one section per tab, each with its own colour and picture
+  const PLAN_TABS = [
+    { key: 'ending', label: 'Ending soon', color: '#c23a5a', pic: null },
+    { key: 'coming', label: 'Coming up', color: '#e3a948', pic: 'plans-coming' },
+    { key: 'both', label: 'Both in', color: '#2fd39a', pic: 'plans-both' },
+    { key: 'theirs', label: 'Are you in?', color: '#4f7bff', pic: 'plans-theirs' },
+    { key: 'waiting', label: 'Waiting', color: '#a63bf2', pic: 'plans-waiting' },
+    { key: 'memories', label: 'Previous dates', color: '#f47cf6', pic: 'plans-memories' },
+  ];
+  function planGroups() {
+    const t = today();
+    const planned = store.ideas.filter((i) => i.status === 'planned' && i.planned_for);
+    const p = partner();
+    return {
+      ending: store.ideas.filter(hasLiveDeadline).sort((x, y) => x.deadline.localeCompare(y.deadline)),
+      ended: store.ideas.filter((i) => isExpired(i) && i.status === 'open'),
+      upcoming: planned.filter((i) => i.planned_for >= t).sort((x, y) => (x.planned_for + (x.planned_time || '')).localeCompare(y.planned_for + (y.planned_time || ''))),
+      past: planned.filter((i) => i.planned_for < t),
+      ready: store.ideas.filter((i) => i.status === 'open' && bothIn(i)),
+      // Ideas you're in on that still need your partner, including before they've joined.
+      waiting: store.ideas.filter((i) => i.status === 'open' && meIn(i) && !partnerIn(i)),
+      theirs: p ? store.ideas.filter((i) => i.status === 'open' && partnerIn(i) && !meIn(i)) : [],
+      done: store.ideas.filter((i) => i.status === 'done')
+        .sort((x, y) => (wentOnDate(y) || y.created_at.slice(0, 10)).localeCompare(wentOnDate(x) || x.created_at.slice(0, 10))),
+    };
+  }
+  function defaultPlanTab(g) {
+    if (g.ending.length || g.ended.length) return 'ending';
+    if (g.upcoming.length || g.past.length) return 'coming';
+    if (g.ready.length) return 'both';
+    if (g.theirs.length) return 'theirs';
+    return 'both';
+  }
+  function plansSheet(body, a) {
+    const g = planGroups();
+    if (!a.tab) a.tab = defaultPlanTab(g);
+    const p = partner(); const pn = p ? p.display_name : 'your partner';
+    const counts = { ending: g.ending.length + g.ended.length, coming: g.upcoming.length + g.past.length, both: g.ready.length, theirs: g.theirs.length, waiting: g.waiting.length, memories: g.done.length };
+    const tab = PLAN_TABS.find((t) => t.key === a.tab) || PLAN_TABS[2];
+    const sec = (title, items, opts, hint) => items.length
+      ? `<h3 class="sec-title">${esc(title)}</h3>${hint ? `<p class="muted small" style="margin:-8px 0 0">${esc(hint)}</p>` : ''}<div class="cards">${items.map((i) => cardHTML(i, opts)).join('')}</div>` : '';
+    const empty = (text, btn = '') => `<div class="empty"><p>${esc(text)}</p>${btn}</div>`;
+    const drawBtn = '<button class="btn primary" data-act="home">Draw from a vial</button>';
+    const views = {
+      ending: {
+        sub: 'Events with a last day. Check you have both decided before they close.',
+        html: (counts.ending ? (g.ending.length ? `<div class="cards">${g.ending.map((i) => cardHTML(i, { deadline: true })).join('')}</div>` : '') + sec('Deadline passed', g.ended, { deadline: true }, 'These have closed. Open one to delete it or change its last day.')
+          : empty('Nothing with a last day right now. When you save a time-limited event, add its last day and it shows up here.')),
+      },
+      coming: {
+        sub: 'The dates you have picked a day for.',
+        html: (counts.coming ? (g.upcoming.length ? `<div class="cards">${g.upcoming.map((i) => cardHTML(i, { plan: true })).join('')}</div>` : '') + sec('Did you go?', g.past, { plan: true }, 'Open one to mark it done or pick a new day.')
+          : empty("Nothing scheduled yet. When you're both in on an idea, pick a day and it shows up here.")),
+      },
+      both: {
+        sub: 'Pick a day and it gets a reminder.',
+        html: g.ready.length ? `<div class="cards">${g.ready.map((i) => cardHTML(i)).join('')}</div>`
+          : empty("When you both tap “I'm in” on an idea, it shows up here so you can pick a day.", drawBtn),
+      },
+      theirs: {
+        title: `${pn} is in. Are you?`,
+        sub: 'Open one and tap your box if you are in too.',
+        html: g.theirs.length ? `<div class="cards">${g.theirs.map((i) => cardHTML(i)).join('')}</div>`
+          : empty(p ? `Nothing is waiting on you. When ${pn} says yes to an idea first, it shows up here.` : 'Once your partner joins, ideas they say yes to first show up here.'),
+      },
+      waiting: {
+        title: `Waiting on ${pn}`,
+        sub: p ? `Ideas you said yes to. They move to Both in once ${pn} is in too.` : 'Ideas you said yes to. Your partner has not joined yet: send them the invite code from Us.',
+        html: g.waiting.length ? `<div class="cards">${g.waiting.map((i) => cardHTML(i)).join('')}</div>`
+          : empty('Nothing waiting. Tap your box on an idea to say you are in.', drawBtn),
+      },
+      memories: {
+        sub: g.done.length ? `You've been on ${g.done.length} ${g.done.length === 1 ? 'date' : 'dates'} together. Newest first.` : 'Dates you go on are kept here, so you can look back on them.',
+        html: `<div class="btn-row"><button class="btn" data-act="log-past">Add a date you went on</button></div>
+          ${g.done.length ? `<div class="cards">${g.done.map((i) => cardHTML(i, { memory: true })).join('')}</div>` : ''}`,
+      },
+    };
+    const v = views[tab.key];
+    body.innerHTML = cardTop({
+      pic: tab.pic, color: tab.color,
+      tabs: tabsHTML(PLAN_TABS.map((t) => ({ ...t, count: counts[t.key] })), tab.key),
+      title: v.title || tab.label, titleColor: `color-mix(in srgb, ${tab.color} 55%, #f6e7c8 45%)`, sub: v.sub,
+    }) + v.html;
+    setSheetGlow(tab.color);
+    bindTabs(body, PLAN_TABS.map((t) => t.key), tab.key, (k) => { a.tab = k; renderSheet(true); $(`.vial-tab[data-tab="${k}"]`, body)?.focus({ preventScroll: true }); });
+  }
+
+  // ---- Us: the two of you, invite code, starter ideas, install steps
+  function usSheet(body) {
     const m = me(); const p = partner();
     const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
-    el.innerHTML = `<div class="panel-inner">
-      <h2 id="usTitle">Us</h2>
+    body.innerHTML = cardTop({
+      pic: 'us', color: '#3fbf6f', headTitle: 'Us', title: 'Us',
+      sub: p ? `${m.display_name} & ${p.display_name}` : 'Just the two of you',
+    }) + `
       <div class="field"><label for="myName">Your name</label>
         <div class="input-row"><input class="input" id="myName" value="${esc(m.display_name)}" maxlength="40" autocomplete="nickname"><button class="btn" id="saveName">Save</button></div></div>
       ${p ? `<p style="margin:0">Sharing vials with <b>${esc(p.display_name)}</b>.</p>`
           : `<div class="field"><span class="label">Invite your partner</span>
-              <p style="margin:0">Send them this app's link and this code. They sign in with their own email, choose “I have an invite code” and type it.</p>
+              <p style="margin:0">Send them this app's link and this code. They sign in with their own account, choose “I have an invite code” and type it.</p>
               <div class="code-box" id="inviteCode">${esc(store.space?.invite_code || '')}</div>
               <button class="btn" id="copyCode">Copy invite code</button></div>`}
-      ${!LIVE ? `<h3>Demo mode</h3>
+      ${!LIVE ? `<h3 class="sec-title">Demo mode</h3>
         <p class="muted" style="margin:0">Nothing is online yet, so this browser plays both of you. Switch to see the app as the other person and tap “I'm in” for them.</p>
         <div class="btn-row"><button class="btn primary" id="switchUser">Switch to ${esc(p?.display_name || 'Partner')}</button><button class="btn ghost" id="resetDemo">Reset demo</button></div>` : ''}
-      <h3>Ideas</h3>
+      <h3 class="sec-title">Ideas</h3>
       <div class="btn-row"><button class="btn" data-act="starters">Add 20 starter ideas</button></div>
-      <h3>Put it on your phone</h3>
+      <h3 class="sec-title">Put it on your phone</h3>
       <p style="margin:0">${isIOS
         ? 'In Safari, tap the Share button, then “Add to Home Screen”. It opens full screen like an app.'
         : 'In Chrome, open the ⋮ menu and choose “Install app” or “Add to Home screen”.'}</p>
       <p class="muted small" style="margin:0">On Android, once installed, Shimmer & Spark appears in the share menu. Long-press a link in Telegram or tap Share on a reel, pick Shimmer & Spark, and the add form opens with the link filled in. On iPhone, copy the link and use the Paste button in the add form.</p>
-      ${LIVE ? '<h3>Account</h3><div class="btn-row"><button class="btn ghost" id="signOut">Sign out</button></div>' : ''}
-    </div>`;
-    $('#saveName').addEventListener('click', async () => {
-      const v = $('#myName').value.trim(); if (!v) return toast('Type a name first');
+      ${LIVE ? '<h3 class="sec-title">Account</h3><div class="btn-row"><button class="btn ghost" id="signOut">Sign out</button></div>' : ''}`;
+    setSheetGlow('#3fbf6f');
+    $('#saveName', body).addEventListener('click', async () => {
+      const v = $('#myName', body).value.trim(); if (!v) return toast('Type a name first');
       try { await store.rename(v); toast('Name saved'); } catch (e) { toast(e.message); }
     });
-    $('#copyCode')?.addEventListener('click', () => {
+    $('#copyCode', body)?.addEventListener('click', () => {
       navigator.clipboard.writeText(store.space.invite_code).then(() => toast('Invite code copied'), () => toast('Select the code and copy it'));
     });
-    $('#switchUser')?.addEventListener('click', () => { store.switchUser(); toast(`Now viewing as ${me().display_name}`); });
-    $('#resetDemo')?.addEventListener('click', () => store.reset());
-    $('#signOut')?.addEventListener('click', () => store.signOut());
+    $('#switchUser', body)?.addEventListener('click', () => { store.switchUser(); toast(`Now viewing as ${me().display_name}`); renderSheet(true); });
+    $('#resetDemo', body)?.addEventListener('click', () => store.reset());
+    $('#signOut', body)?.addEventListener('click', () => store.signOut());
   }
 
   function renderToday() {
@@ -696,30 +767,39 @@
   }
 
   // ---------------------------------------------------------------- sheets
-  let sheet = null; // { type, args, locked }
+  let sheet = null; // { type, args, locked, parent }
+  const DOCK_FOR = { plans: 'plans', us: 'us', draw: 'home' };
+  function setSheetGlow(color) { $('#sheet').style.setProperty('--glow', color || 'rgba(227,169,72,.9)'); }
 
-  function openSheet(type, args = {}, locked = false) {
-    sheet = { type, args, locked };
+  // `parent` is the card to go back to when this one closes (a vial or Plans, when an idea was opened from it).
+  function openSheet(type, args = {}, locked = false, parent = null) {
+    sheet = { type, args, locked, parent };
     $('#sheet').hidden = false; $('#sheetBackdrop').hidden = false;
     $('#sheetClose').hidden = locked;
     // An opened idea unrolls as a long parchment scroll, like the one from a vial.
     $('#sheet').classList.toggle('as-scroll', type === 'detail');
+    setSheetGlow(null);
+    if (DOCK_FOR[type]) setDock(DOCK_FOR[type]);
     renderSheet(true);
   }
-  function closeSheet() {
+  function closeSheet(all = false) {
     if (!sheet || sheet.locked) return;
+    const parent = all ? null : sheet.parent;
+    if (parent) { openSheet(parent.type, parent.args); return; }
     sheet = null;
     $('#sheet').hidden = true; $('#sheetBackdrop').hidden = true;
     $('#sheetBody').innerHTML = '';
+    setDock('home');
   }
-  const LIVE_SHEETS = new Set(['draw', 'detail']);
+  const LIVE_SHEETS = new Set(['draw', 'detail', 'plans']);
   function renderSheet(first = false) {
     if (!sheet) return;
     if (!first && !LIVE_SHEETS.has(sheet.type)) return;
     const body = $('#sheetBody');
     const keepScroll = first ? 0 : body.scrollTop;
-    ({ draw: drawSheet, detail: detailSheet, edit: editSheet, plan: planSheet, done: doneSheet, signin: signinSheet, space: spaceSheet })[sheet.type](body, sheet.args);
+    ({ draw: drawSheet, detail: detailSheet, edit: editSheet, plan: planSheet, done: doneSheet, signin: signinSheet, space: spaceSheet, plans: plansSheet, us: usSheet })[sheet.type](body, sheet.args);
     body.scrollTop = keepScroll;
+    mountCardTop(body);
   }
 
   // Draw from a vial
@@ -732,8 +812,10 @@
     const res = a.resultId && store.ideas.find((i) => i.id === a.resultId);
     const vibes = [['any', 'Any vibe', J.color], ...J.vibes.map((v) => [v, VIBES[v].name, VIBES[v].color])];
     body.innerHTML = `
-      <div class="vibe-banner" style="--c:${J.color}">
+      <div class="sheet-head" style="--head-img:url('${picUrl(a.vibe === 'any' ? a.jar : a.vibe)}');--c:${J.color}">
         <div class="vial-tabs" role="tablist" aria-label="Vials">${Object.entries(JARS).map(([k, V]) => `<button type="button" role="tab" class="vial-tab" style="--c:${V.color}" data-jar="${k}" aria-selected="${a.jar === k}" tabindex="${a.jar === k ? 0 : -1}">${esc(V.short)}</button>`).join('')}</div>
+      </div>
+      <div class="vibe-banner" style="--c:${J.color}">
         ${(() => { const pic = a.vibe === 'any' ? a.jar : a.vibe; return `<img src="assets/vibes/${pic}.jpg?v=${PICS_VERSION}" alt="" style="object-position:${VIBE_FOCUS[pic] || '50% 50%'};${VIBE_LIFT[pic] ? `filter:brightness(${VIBE_LIFT[pic]}) saturate(1.1)` : ''}" onerror="this.remove()">`; })()}
         <h2 class="sheet-title" style="color:${J.hi}">${esc(J.name)}</h2>
         <p class="sheet-sub">${a.vibe === 'any' ? "What's the vibe tonight?" : esc(VIBES[a.vibe].name)}</p>
@@ -752,6 +834,7 @@
       ${pool.length ? `<h3 style="margin:6px 0 0;font-family:var(--font-display);font-weight:400;letter-spacing:.14em;text-transform:uppercase;font-size:.9rem;color:var(--ink-soft)">Or pick one yourself (${pool.length})</h3>
         <div class="cards">${pool.map((i) => cardHTML(i)).join('')}</div>` : ''}`;
     setVialLevel('big', openIdeas(a.jar).length);
+    setSheetGlow(J.color);
     // Move between vials without closing: tap a tab, swipe the picture, or use the arrow keys.
     const jarKeys = Object.keys(JARS);
     const goToJar = (k) => { if (!JARS[k] || k === a.jar) return; a.jar = k; a.vibe = 'any'; a.resultId = null; renderSheet(true); $(`.vial-tab[data-jar="${k}"]`, body)?.focus({ preventScroll: true }); };
@@ -770,7 +853,7 @@
     }, { passive: true });
     $$('.chip[data-vibe]', body).forEach((b) => b.addEventListener('click', () => { a.vibe = b.dataset.vibe; a.resultId = null; renderSheet(true); }));
     $('#drawBoth', body).addEventListener('change', (e) => { a.bothOnly = e.target.checked; a.resultId = null; renderSheet(true); });
-    $('[data-act="add-jar"]', body)?.addEventListener('click', () => openSheet('edit', { prefill: { jar: a.jar, vibe: a.vibe === 'any' ? J.vibes[0] : a.vibe } }));
+    $('[data-act="add-jar"]', body)?.addEventListener('click', () => openSheet('edit', { prefill: { jar: a.jar, vibe: a.vibe === 'any' ? J.vibes[0] : a.vibe } }, false, { type: 'draw', args: a }));
     $('#shakeBtn', body).addEventListener('click', () => {
       const p = drawPool(a); if (!p.length) return;
       const choices = p.length > 1 ? p.filter((i) => i.id !== a.resultId) : p;
@@ -1163,7 +1246,7 @@
         if (a.mode === 'join') await store.joinSpace($('#iCode', body).value, name);
         else await store.createSpace('Shimmer & Spark', name);
         afterAuth('ready');
-        if (a.mode !== 'join') setView('us');
+        if (a.mode !== 'join') openSheet('us');
       } catch (ex) { err.textContent = ex.message; err.hidden = false; }
     });
   }
@@ -1220,8 +1303,6 @@
     updateVials();
     renderToday();
     layoutVials();
-    if (view === 'plans') renderPlans();
-    if (view === 'us' && !document.activeElement?.matches('#myName')) renderUs();
     renderSheet();
     const n = store.ideas.filter((i) => i.status !== 'done').length;
     $('#tagline').textContent = n ? 'Select a vial to ignite the night' : 'Open a vial to add your first idea';
@@ -1229,16 +1310,26 @@
 
   document.addEventListener('click', async (e) => {
     const open = e.target.closest('[data-open-idea]');
-    if (open) { openSheet('detail', { id: open.dataset.openIdea }); return; }
+    if (open) {
+      // Coming from a vial or Plans: closing the idea goes back there.
+      const parent = sheet && ['draw', 'plans'].includes(sheet.type) ? { type: sheet.type, args: sheet.args } : null;
+      openSheet('detail', { id: open.dataset.openIdea }, false, parent); return;
+    }
     const act = e.target.closest('[data-act]')?.dataset.act;
     if (act === 'add') openSheet('edit', {});
-    if (act === 'log-past') openSheet('edit', { prefill: { logDone: true } });
-    if (act === 'home') setView('home');
+    if (act === 'log-past') openSheet('edit', { prefill: { logDone: true } }, false, sheet?.type === 'plans' ? { type: 'plans', args: sheet.args } : null);
+    if (act === 'home') closeSheet(true);
     if (act === 'starters') { try { await store.addStarters(); toast('Added 20 starter ideas'); } catch (ex) { toast(ex.message); } }
   });
-  $$('.dock-btn').forEach((b) => b.addEventListener('click', () => { closeSheet(); setView(b.dataset.view); }));
-  $('#sheetClose').addEventListener('click', closeSheet);
-  $('#sheetBackdrop').addEventListener('click', closeSheet);
+  $$('.dock-btn').forEach((b) => b.addEventListener('click', () => {
+    const v = b.dataset.view;
+    if (v === 'home') { closeSheet(true); return; }
+    if (sheet?.locked) return;
+    openSheet(v, v === 'plans' ? {} : {});
+  }));
+  $('#sheetClose').addEventListener('click', () => closeSheet());
+  $('#sheetBackdrop').addEventListener('click', () => closeSheet());
+  $('#sheetBody').addEventListener('scroll', () => updateStuck($('#sheetBody')), { passive: true });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeSheet(); });
 
   function handleShare() {
