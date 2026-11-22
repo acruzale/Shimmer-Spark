@@ -53,10 +53,25 @@ img { max-width: 100%; }
 
 /* ---------- Scene ---------- */
 .scene { position: fixed; inset: 0; bottom: calc(0px - var(--ios-gap)); overflow: hidden; }
-.scene-img, .fireflies, .vials {
-  position: absolute; inset: 0; width: 100%; height: 100%;
+.fireflies { position: absolute; inset: 0; width: 100%; height: 100%; }
+/* The picture and the vials share one box: full screen height, 3:2, centred. Narrow screens crop the
+   sides; wide screens show it whole, with a blurred copy of the picture filling the space either side. */
+.scene-img, .vials {
+  position: absolute; top: 0; left: 50%; height: 100%; width: auto; aspect-ratio: 3 / 2; max-width: none;
+  transform: translateX(-50%);
 }
-.scene-img { object-fit: cover; object-position: center top; filter: saturate(1.05); } /* top-anchored so the light string and vials stay in view */
+.scene-img { filter: saturate(1.05); }
+.scene::before {
+  content: ""; position: absolute; inset: -60px; pointer-events: none;
+  background: url("assets/home.jpg") center / cover no-repeat;
+  filter: blur(34px) brightness(.5) saturate(1.15);
+}
+@media (min-aspect-ratio: 3/2) { /* wider than the picture: blend its edges into the blurred sides */
+  .scene-img {
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
+            mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
+  }
+}
 .scene::after { /* warm vignette so text reads */
   content: ""; position: absolute; inset: 0; pointer-events: none;
   background:

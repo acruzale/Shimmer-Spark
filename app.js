@@ -442,8 +442,7 @@
     for (const k of Object.keys(JARS)) setVialLevel('v' + k, 0);
     layoutVials();
   }
-  // On wide, short screens the picture scales up to fill the width, which would make the vials hang down
-  // over the title. Shrink them around their hook (they stay on the string) so they end above the title.
+  // If the vials would hang down over the title, shrink them around their hook (they stay on the string).
   // The installed app no longer draws behind the status bar (see index.html), so iOS sizes the window
   // correctly and nothing needs moving. Kept as a no-op hook so the CSS variable stays at 0.
   const iosGap = 0;
@@ -451,7 +450,7 @@
   function layoutVials() {
     const svg = $('#vials'); const copy = $('#homeCopy');
     if (!svg || !copy) return;
-    const k = Math.max(innerWidth / 1500, (innerHeight + iosGap) / 1000); // picture scale (cover, anchored to the top)
+    const k = innerHeight / 1000; // picture scale: always the full height of the screen
     const copyTop = copy.getBoundingClientRect().top;
     const hookY = 120 * k;          // the lowest hook on the string, in screen pixels
     const vialH = (62 + 250) * k;   // longest wire + vial + label, in screen pixels
