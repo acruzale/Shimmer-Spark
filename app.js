@@ -584,7 +584,7 @@
         <span class="card-body">
           <span class="card-title">${esc(idea.title)}</span>
           <span class="card-meta">${deadlineTag(idea)}${idea.status === 'planned' && idea.planned_for ? `<span class="planned-tag">Going ${esc(fmtDate(idea.planned_for))}</span>` : ''}</span>
-          ${whoPills(idea)}
+          <span class="card-meta">${whoDots(idea)}</span>
         </span>
       </button>`;
     }
