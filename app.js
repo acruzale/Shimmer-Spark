@@ -1245,8 +1245,11 @@
     $('#demoChip').hidden = LIVE;
     try { afterAuth(await store.start()); }
     catch (e) { toast('Could not connect: ' + (e.message || e)); console.error(e); }
-    if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
-      navigator.serviceWorker.register('sw.js').catch(() => {});
+    // Offline helper on the live site only. On localhost it's switched off (and removed) so every
+    // reload shows the latest files while working on the app.
+    if ('serviceWorker' in navigator) {
+      if (location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
+      else navigator.serviceWorker.getRegistrations().then((rs) => rs.forEach((r) => r.unregister())).catch(() => {});
     }
   }
   boot();
