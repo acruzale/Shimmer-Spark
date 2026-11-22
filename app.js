@@ -28,7 +28,7 @@
   };
   // Banner pictures live in assets/vibes/<vibe>.jpg (and <jar>.jpg for "Any vibe"). Missing ones are skipped.
   // VIBE_FOCUS picks which part of a picture stays in view when it is cropped to the banner.
-  const VIBE_FOCUS = { chill: '50% 50%' };
+  const VIBE_FOCUS = { chill: '50% 50%', hiking: '42% 55%', active: '55% 50%', daytrip: '47% 100%' };
   // Where each vial hangs on the photo's string of lights (picture coordinates, 1500 x 1000).
   const VIAL_POS = { outside: { x: 600, wire: 30 }, indoor: { x: 750, wire: 62 }, home: { x: 900, wire: 38 } };
   const stringY = (x) => 75 + (x - 600) * 0.173; // traced from the photo's light string between x 600 and 900
