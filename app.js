@@ -30,9 +30,9 @@
   // VIBE_FOCUS picks which part of a picture stays in view when it is cropped to the banner.
   // VIBE_LIFT brightens pictures that are too dark under the banner's fade.
   // Bump PICS_VERSION whenever a picture file is replaced, so phones load the new one.
-  const PICS_VERSION = 7;
+  const PICS_VERSION = 8;
   const VIBE_LIFT = { cozy: 1.6, 'plans-ending': 1.35 };
-  const VIBE_FOCUS = { chill: '50% 50%', hiking: '42% 55%', active: '55% 50%', daytrip: '47% 100%', leisure: '55% 30%', 'indoor-active': '50% 40%', cozy: '62% 50%', culinary: '62% 40%', projects: '50% 35%', outside: '42% 45%', indoor: '50% 45%', home: '48% 30%', 'plans-ending': '50% 30%', 'plans-both': '50% 40%', 'plans-theirs': '50% 40%', 'plans-waiting': '50% 45%', 'plans-memories': '50% 40%', us: '45% 40%', all: '62% 35%' };
+  const VIBE_FOCUS = { chill: '50% 50%', hiking: '42% 55%', active: '55% 50%', daytrip: '47% 100%', leisure: '55% 30%', 'indoor-active': '50% 40%', cozy: '62% 50%', culinary: '62% 40%', projects: '50% 35%', outside: '42% 45%', indoor: '50% 45%', home: '48% 30%', 'plans-ending': '50% 30%', 'plans-both': '50% 40%', 'plans-theirs': '50% 40%', 'plans-waiting': '50% 45%', 'plans-memories': '50% 40%', us: '45% 40%', all: '62% 35%', edit: '50% 30%' };
   // Where each vial hangs on the photo's string of lights (picture coordinates, 1500 x 1000).
   const VIAL_POS = { outside: { x: 600, wire: 30 }, indoor: { x: 750, wire: 62 }, home: { x: 900, wire: 38 } };
   const stringY = (x) => 75 + (x - 600) * 0.173; // traced from the photo's light string between x 600 and 900
@@ -1110,38 +1110,34 @@
     const f = existing ? { ...existing } : { title: '', link: '', place: '', notes: '', jar: 'home', vibe: 'cozy', cover_url: null, ...(a.prefill || {}) };
     if (!JARS[f.jar]) f.jar = 'home';
     if (!JARS[f.jar].vibes.includes(f.vibe)) f.vibe = JARS[f.jar].vibes[0];
-    let coverBlob = null; let coverPreview = f.cover_url; let removeCover = false;
 
     const vibesHTML = () => JARS[f.jar].vibes.map((v) => `<button type="button" class="chip" style="--c:${VIBES[v].color}" data-vibe="${v}" aria-pressed="${f.vibe === v}">${esc(VIBES[v].name)}</button>`).join('');
-    body.innerHTML = `
-      <h2 class="sheet-title">${existing ? 'Edit idea' : logDone ? 'Add a date you went on' : 'New date idea'}</h2>
+    const formTitle = existing ? 'Edit idea' : logDone ? 'Add a date you went on' : 'New date idea';
+    body.innerHTML = cardTop({
+      pic: 'edit', color: '#e3a948', headTitle: formTitle, title: formTitle,
+      sub: existing ? 'Change anything, then save.' : logDone ? 'A date you went on before you had the app.' : 'Name it, pick a vial, and add the reel or place.',
+    }) + `
       <form id="ideaForm" class="gate" novalidate>
-        <div class="field"><label for="fLink">Link (Instagram, TikTok, website…)</label>
-          <div class="input-row"><input class="input" id="fLink" type="url" inputmode="url" placeholder="https://www.instagram.com/reel/…" value="${esc(f.link)}" autocomplete="off">
-          <button type="button" class="btn ghost" id="pasteBtn">Paste</button></div>
-          <p class="hint" id="linkHint"></p></div>
         <div class="field"><label for="fTitle">What's the date?</label>
           <input class="input" id="fTitle" required maxlength="120" placeholder="e.g. New ice rink by the river" value="${esc(f.title)}"></div>
         <div class="field"><span class="label">Which vial?</span>
           <div class="seg" id="fJar">${Object.entries(JARS).map(([k, J]) => `<button type="button" style="--c:${J.color}" data-jar="${k}" aria-pressed="${f.jar === k}"><span class="dot"></span>${esc(J.name)}</button>`).join('')}</div></div>
         <div class="field"><span class="label">Vibe</span><div class="chips" id="fVibe">${vibesHTML()}</div></div>
-        <div class="field"><label for="fPlace">Where (optional)</label>
+        <div class="field"><label for="fLink">Link (Instagram, TikTok, website…)</label>
+          <div class="input-row"><input class="input" id="fLink" type="url" inputmode="url" placeholder="https://www.instagram.com/reel/…" value="${esc(f.link)}" autocomplete="off">
+          <button type="button" class="btn ghost" id="pasteBtn">Paste</button></div>
+          <p class="hint" id="linkHint"></p></div>
+        <div class="field"><label for="fPlace">Where</label>
           <input class="input" id="fPlace" maxlength="140" placeholder="Name of the place or area" value="${esc(f.place)}"></div>
-        <div class="field"><label for="fMaps">Google Maps link (optional)</label>
+        <div class="field"><label for="fMaps">Google Maps link</label>
           <div class="input-row"><input class="input" id="fMaps" type="url" inputmode="url" placeholder="https://maps.app.goo.gl/…" value="${esc(f.maps_url || '')}" autocomplete="off">
           <button type="button" class="btn ghost" id="pasteMaps">Paste</button></div>
           <p class="hint" id="mapsHint">In Google Maps, open the place, tap Share and copy the link.</p></div>
-        <div class="field"><label for="fDeadline">Last day (optional)</label>
+        <div class="field"><label for="fDeadline">Last day</label>
           <input class="input" id="fDeadline" type="date" value="${esc(f.deadline || '')}">
           <p class="hint">For events that close, like a seasonal ice rink or an exhibition. It shows under "Ending soon" in Plans.</p></div>
-        <div class="field"><label for="fNotes">Notes (optional)</label>
+        <div class="field"><label for="fNotes">Notes</label>
           <textarea class="textarea" id="fNotes" maxlength="2000" placeholder="Opening hours, price, what to bring…">${esc(f.notes)}</textarea></div>
-        <div class="field"><span class="label">Cover picture (optional)</span>
-          <div class="cover-pick"><span id="coverPrev"></span>
-            <label class="btn ghost" for="fCover" style="cursor:pointer">Choose picture</label>
-            <input id="fCover" type="file" accept="image/*" hidden>
-            <button type="button" class="btn ghost" id="coverRemove" hidden>Remove</button></div>
-          <p class="hint">A screenshot of the reel works well. It shows on the card so you remember what it was.</p></div>
         ${existing || logDone ? '' : `<label class="toggle-row"><input type="checkbox" id="fIn" checked> I'm already in on this one</label>`}
         <p class="error" id="formErr" hidden></p>
         <div class="btn-row stretch"><button class="btn primary" type="submit" id="saveIdea">${saveLabel}</button></div>
@@ -1151,11 +1147,7 @@
       const v = $('#fLink', body).value.trim(); const m = mediaInfo(v);
       $('#linkHint', body).textContent = m ? `${m.site} link: it will play inside the app.` : v && !safeUrl(v) ? 'That does not look like a full link. It should start with https://' : '';
     };
-    const coverUI = () => {
-      $('#coverPrev', body).innerHTML = coverPreview ? `<img src="${esc(coverPreview)}" alt="Cover preview">` : '';
-      $('#coverRemove', body).hidden = !coverPreview;
-    };
-    linkHint(); coverUI();
+    linkHint();
     $('#fLink', body).addEventListener('input', linkHint);
     $('#pasteBtn', body).addEventListener('click', async () => {
       try {
@@ -1194,12 +1186,6 @@
       f.vibe = b.dataset.vibe; $$('#fVibe .chip', body).forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
     }));
     bindVibes();
-    $('#fCover', body).addEventListener('change', async (e) => {
-      const file = e.target.files[0]; if (!file) return;
-      try { coverBlob = await resizeImage(file); coverPreview = URL.createObjectURL(coverBlob); removeCover = false; coverUI(); }
-      catch { toast('That picture could not be read. Try a JPG or PNG.'); }
-    });
-    $('#coverRemove', body).addEventListener('click', () => { coverBlob = null; coverPreview = null; removeCover = true; coverUI(); });
 
     $('#ideaForm', body).addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -1215,8 +1201,7 @@
       err.hidden = true;
       const btn = $('#saveIdea', body); btn.disabled = true; btn.textContent = 'Saving…';
       try {
-        let cover_url = removeCover ? null : (existing ? existing.cover_url : null);
-        if (coverBlob) cover_url = await store.uploadCover(coverBlob);
+        const cover_url = existing ? existing.cover_url : null; // no cover picker; an older cover stays as it was
         const fields = { title, link, place: $('#fPlace', body).value.trim(), maps_url, deadline: $('#fDeadline', body).value || null, notes: $('#fNotes', body).value.trim(), jar: f.jar, vibe: f.vibe, cover_url };
         let id;
         if (existing) { await store.update(existing.id, fields); id = existing.id; toast('Saved'); }
