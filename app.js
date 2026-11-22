@@ -576,7 +576,8 @@
     const past = planned.filter((i) => i.planned_for < t);
     const ready = store.ideas.filter((i) => i.status === 'open' && bothIn(i));
     const p = partner();
-    const waiting = p ? store.ideas.filter((i) => i.status === 'open' && meIn(i) && !partnerIn(i)) : [];
+    // Ideas you're in on that still need your partner, including before they've joined.
+    const waiting = store.ideas.filter((i) => i.status === 'open' && meIn(i) && !partnerIn(i));
     const theirs = p ? store.ideas.filter((i) => i.status === 'open' && partnerIn(i) && !meIn(i)) : [];
     const done = store.ideas.filter((i) => i.status === 'done')
       .sort((a, b) => (wentOnDate(b) || b.created_at.slice(0, 10)).localeCompare(wentOnDate(a) || a.created_at.slice(0, 10)));
@@ -595,7 +596,9 @@
         ? `<p class="muted small" style="margin:-8px 0 0">Pick a day and it gets a reminder.</p><div class="cards">${ready.map((i) => cardHTML(i)).join('')}</div>`
         : `<div class="empty"><p>When you both tap “I'm in” on an idea, it shows up here so you can pick a day.</p><button class="btn primary" data-act="home">Draw from a vial</button></div>`}
       ${foldSection('theirs', `${pn} is in. Are you?`, theirs, 'Tap one to say if you are in too.')}
-      ${foldSection('waiting', `Waiting on ${pn}`, waiting, `Ideas you said yes to. They move up once ${pn} is in too.`)}
+      ${foldSection('waiting', `Waiting on ${pn}`, waiting, p
+        ? `Ideas you said yes to. They move up once ${pn} is in too.`
+        : 'Ideas you said yes to. Your partner has not joined yet: send them the invite code from the Us tab.')}
       <details class="memories" data-fold="memories" ${foldOpen.memories ? 'open' : ''}>
         <summary>
           <span class="memories-title">Previous dates</span>
