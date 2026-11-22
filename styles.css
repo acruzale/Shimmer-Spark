@@ -274,6 +274,7 @@ img { max-width: 100%; }
 .btn.primary { background: linear-gradient(180deg, color-mix(in srgb, var(--c) 92%, #fff 8%), color-mix(in srgb, var(--c) 70%, #000 30%)); color: #160f04; border-color: transparent; box-shadow: 0 0 22px color-mix(in srgb, var(--c) 40%, transparent); }
 /* Mel's magic: a gilded gloss, flowing gold filigree that glints like metal, and a still gleam of light. */
 .btn.primary {
+  overflow: hidden; /* keeps the gleam inside the button, so it never widens the page */
   position: relative; isolation: isolate;
   background:
     linear-gradient(180deg, rgba(255,247,222,.5) 0%, rgba(255,247,222,0) 42%),
@@ -600,3 +601,11 @@ img { max-width: 100%; }
 .sheet.as-scroll .cover, .sheet.as-scroll .embed-wrap { border-color: rgba(59,42,18,.35); }
 .sheet.as-scroll .confirm-box { border-color: #9a2a2a; background: rgba(154,42,42,.06); }
 .sheet.as-scroll .confirm-box p { color: #2a1e0c; }
+
+/* Up-and-down only: nothing in this app scrolls sideways, so pages and panels never drift horizontally. */
+html, body { overflow-x: hidden; overscroll-behavior: none; }
+.panel, .sheet-body {
+  overflow-x: hidden;
+  overscroll-behavior: contain;  /* scrolling a list never drags the page behind it */
+  touch-action: pan-y;           /* a slightly diagonal swipe still scrolls straight down */
+}
