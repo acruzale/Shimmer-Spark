@@ -32,7 +32,7 @@
   // Bump PICS_VERSION whenever a picture file is replaced, so phones load the new one.
   const PICS_VERSION = 8;
   const VIBE_LIFT = { cozy: 1.6, 'plans-ending': 1.35 };
-  const VIBE_FOCUS = { chill: '50% 50%', hiking: '42% 55%', active: '55% 50%', daytrip: '47% 100%', leisure: '55% 30%', 'indoor-active': '50% 40%', cozy: '62% 50%', culinary: '62% 40%', projects: '50% 35%', outside: '42% 45%', indoor: '50% 45%', home: '48% 30%', 'plans-ending': '50% 30%', 'plans-both': '50% 40%', 'plans-theirs': '50% 40%', 'plans-waiting': '50% 45%', 'plans-memories': '50% 40%', us: '45% 40%', all: '62% 35%', edit: '50% 30%' };
+  const VIBE_FOCUS = { chill: '50% 50%', hiking: '42% 55%', active: '55% 50%', daytrip: '47% 100%', leisure: '55% 30%', 'indoor-active': '50% 40%', cozy: '62% 50%', culinary: '62% 40%', projects: '50% 35%', outside: '42% 45%', indoor: '50% 45%', home: '48% 30%', 'plans-ending': '50% 30%', 'plans-both': '50% 40%', 'plans-theirs': '50% 40%', 'plans-waiting': '50% 45%', 'plans-memories': '50% 40%', 'plans-talk': '50% 62%', us: '45% 40%', all: '62% 35%', edit: '50% 30%' };
   // Where each vial hangs on the photo's string of lights (picture coordinates, 1500 x 1000).
   const VIAL_POS = { outside: { x: 600, wire: 30 }, indoor: { x: 750, wire: 62 }, home: { x: 900, wire: 38 } };
   const stringY = (x) => 75 + (x - 600) * 0.173; // traced from the photo's light string between x 600 and 900
@@ -691,7 +691,7 @@
     { key: 'both', label: 'Both in', color: '#2fd39a', pic: 'plans-both' },
     { key: 'theirs', label: 'Are you in?', color: '#4f7bff', pic: 'plans-theirs' },
     { key: 'waiting', label: 'Waiting', color: '#a63bf2', pic: 'plans-waiting' },
-    { key: 'talk', label: 'Talk about it', color: '#ff6b4a', pic: null },
+    { key: 'talk', label: 'Talk about it', color: '#ff6b4a', pic: 'plans-talk' },
     { key: 'memories', label: 'Previous dates', color: '#f47cf6', pic: 'plans-memories' },
   ];
   function planGroups() {
