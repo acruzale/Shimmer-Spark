@@ -24,6 +24,9 @@
   --dock-h: 72px;
   --safe-b: env(safe-area-inset-bottom, 0px);
   --safe-t: env(safe-area-inset-top, 0px);
+  /* Installed iPhone app with the picture behind the status bar: iOS reports the screen shorter by the
+     status bar's height, so bottom-pinned things float up. app.js measures that gap and sets this. */
+  --ios-gap: 0px;
   --gutter-l: max(16px, env(safe-area-inset-left, 0px));
   --gutter-r: max(16px, env(safe-area-inset-right, 0px));
   color-scheme: dark;
@@ -49,7 +52,7 @@ button { cursor: pointer; }
 img { max-width: 100%; }
 
 /* ---------- Scene ---------- */
-.scene { position: fixed; inset: 0; overflow: hidden; }
+.scene { position: fixed; inset: 0; bottom: calc(0px - var(--ios-gap)); overflow: hidden; }
 .scene-img, .fireflies, .vials {
   position: absolute; inset: 0; width: 100%; height: 100%;
 }
@@ -71,7 +74,7 @@ img { max-width: 100%; }
 /* ---------- Home copy ---------- */
 .home-copy {
   position: fixed; left: 0; right: 0;
-  bottom: calc(var(--dock-h) + var(--safe-b) + 18px);
+  bottom: calc(var(--dock-h) + var(--safe-b) + 18px - var(--ios-gap));
   padding-left: var(--gutter-l); padding-right: var(--gutter-r);
   text-align: center; z-index: 3;
   display: flex; flex-direction: column; align-items: center; gap: 6px;
@@ -123,7 +126,7 @@ img { max-width: 100%; }
 
 /* ---------- Dock ---------- */
 .dock {
-  position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
+  position: fixed; left: 0; right: 0; bottom: calc(0px - var(--ios-gap)); z-index: 20;
   height: calc(var(--dock-h) + var(--safe-b));
   padding: 0 var(--gutter-r) var(--safe-b) var(--gutter-l);
   display: grid; grid-template-columns: repeat(5, 1fr); align-items: center; justify-items: center;
@@ -152,7 +155,7 @@ img { max-width: 100%; }
 /* ---------- Panels (Ideas / Plans / Us) ---------- */
 .panel {
   position: fixed; z-index: 10; left: 0; right: 0; top: 0;
-  bottom: calc(var(--dock-h) + var(--safe-b));
+  bottom: calc(var(--dock-h) + var(--safe-b) - var(--ios-gap));
   overflow-y: auto; -webkit-overflow-scrolling: touch;
   background:
     radial-gradient(130% 55% at 50% 112%, var(--ember), transparent 62%),
@@ -299,10 +302,10 @@ img { max-width: 100%; }
 .btn-row.stretch > .btn { flex: 1 1 140px; }
 
 /* ---------- Sheets ---------- */
-.sheet-backdrop { position: fixed; inset: 0; z-index: 30; background: rgba(3,7,6,.6); animation: fade .2s ease; }
+.sheet-backdrop { position: fixed; inset: 0; bottom: calc(0px - var(--ios-gap)); z-index: 30; background: rgba(3,7,6,.6); animation: fade .2s ease; }
 @keyframes fade { from { opacity: 0; } }
 .sheet {
-  position: fixed; z-index: 31; left: 50%; bottom: 0; transform: translateX(-50%);
+  position: fixed; z-index: 31; left: 50%; bottom: calc(0px - var(--ios-gap)); transform: translateX(-50%);
   width: min(640px, 100%); max-height: min(92dvh, calc(100% - var(--safe-t) - 12px));
   display: flex; flex-direction: column;
   background:
@@ -506,7 +509,7 @@ img { max-width: 100%; }
 /* Toast */
 .toast {
   position: fixed; z-index: 50; left: 50%; transform: translateX(-50%);
-  bottom: calc(var(--dock-h) + var(--safe-b) + 16px);
+  bottom: calc(var(--dock-h) + var(--safe-b) + 16px - var(--ios-gap));
   background: #26231e; border: 1px solid var(--brass); color: var(--ink); padding: 10px 16px 8px; border-radius: 10px;
   box-shadow: 0 10px 30px rgba(0,0,0,.5); max-width: calc(100% - 32px); animation: fade .2s ease;
 }

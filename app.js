@@ -381,10 +381,26 @@
   }
   // On wide, short screens the picture scales up to fill the width, which would make the vials hang down
   // over the title. Shrink them around their hook (they stay on the string) so they end above the title.
+  // Installed iPhone app (picture behind the status bar): iOS reports the screen shorter by the status bar's
+  // height, so the menu floats up. Measure what's missing and let the CSS move bottom-pinned things down.
+  let iosGap = 0;
+  function measureIosGap() {
+    const standalone = navigator.standalone === true || matchMedia('(display-mode: standalone)').matches;
+    const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    let gap = 0;
+    if (standalone && isIOS) {
+      const portrait = innerHeight >= innerWidth;
+      const fullHeight = portrait ? Math.max(screen.width, screen.height) : Math.min(screen.width, screen.height);
+      gap = Math.round(fullHeight - innerHeight);
+      if (gap < 0 || gap > 80) gap = 0; // only correct a status-bar-sized gap
+    }
+    iosGap = gap;
+    document.documentElement.style.setProperty('--ios-gap', gap + 'px');
+  }
   function layoutVials() {
     const svg = $('#vials'); const copy = $('#homeCopy');
     if (!svg || !copy) return;
-    const k = Math.max(innerWidth / 1500, innerHeight / 1000); // picture scale (cover, anchored to the top)
+    const k = Math.max(innerWidth / 1500, (innerHeight + iosGap) / 1000); // picture scale (cover, anchored to the top)
     const copyTop = copy.getBoundingClientRect().top;
     const hookY = 120 * k;          // the lowest hook on the string, in screen pixels
     const vialH = (62 + 250) * k;   // longest wire + vial + label, in screen pixels
@@ -1238,9 +1254,11 @@
 
   async function boot() {
     buildVials();
+    measureIosGap();
     startFireflies();
     layoutVials();
-    addEventListener('resize', layoutVials);
+    addEventListener('resize', () => { measureIosGap(); layoutVials(); });
+    addEventListener('orientationchange', () => setTimeout(() => { measureIosGap(); layoutVials(); }, 300));
     store.onChange(renderAll);
     $('#demoChip').hidden = LIVE;
     try { afterAuth(await store.start()); }
