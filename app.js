@@ -302,57 +302,93 @@
   const openIdeas = (jar) => store.ideas.filter((i) => i.status !== 'done' && (!jar || i.jar === jar));
 
   // ---------------------------------------------------------------- vial art
+  // Shimmer vial, after the Arcane concept art: weathered leather cap with a brass rim, hinge clasp and an
+  // octagonal window; a clear glass tube with a brass spine (Y under the cap, a fork at the base);
+  // stacked brass coils; a chamfered base with hex bolts. Drawn in local units, hook ring at the top (y≈15).
+  const polygon = (sides, cx, cy, r, rot = 0) => Array.from({ length: sides }, (_, n) => {
+    const a = rot + (n * 2 * Math.PI) / sides;
+    return `${(cx + r * Math.cos(a)).toFixed(2)},${(cy + r * Math.sin(a)).toFixed(2)}`;
+  }).join(' ');
+  const VIAL_TUBE = { top: 62, height: 104 }; // the inside of the glass the liquid can fill
   function vialMarkup(jar, pfx) {
     const J = JARS[jar];
-    const B = `url(#${pfx}brass)`, M = `url(#${pfx}metal)`;
+    const B = `url(#${pfx}brass)`, BV = `url(#${pfx}brassv)`, L = `url(#${pfx}leather)`;
     const dur = (3 + Math.random() * 2).toFixed(2);
+    const hexBolt = (cx, cy, r) => `<polygon points="${polygon(6, cx, cy, r, Math.PI / 6)}" fill="${B}" stroke="#2a1d10" stroke-width=".8"/>
+      <polygon points="${polygon(6, cx, cy, r * .55, Math.PI / 6)}" fill="none" stroke="#5a421d" stroke-width=".8"/>`;
+    const coils = [0, 1, 2, 3].map((n) => `<rect x="-21" y="${(169 + n * 4.6).toFixed(1)}" width="42" height="3.4" rx="1.7" fill="${BV}"/>`).join('');
     return `
       <defs>
-        <linearGradient id="${pfx}metal" x1="0" x2="1"><stop offset="0" stop-color="#1b1916"/><stop offset=".32" stop-color="#5d554a"/><stop offset=".55" stop-color="#2c2823"/><stop offset="1" stop-color="#121110"/></linearGradient>
         <linearGradient id="${pfx}brass" x1="0" x2="1"><stop offset="0" stop-color="#5a421d"/><stop offset=".38" stop-color="#f1d79a"/><stop offset=".68" stop-color="#b38a44"/><stop offset="1" stop-color="#4d3818"/></linearGradient>
+        <linearGradient id="${pfx}brassv" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f3dca0"/><stop offset=".5" stop-color="#c49a52"/><stop offset="1" stop-color="#6b4f22"/></linearGradient>
+        <linearGradient id="${pfx}leather" x1="0" x2="1"><stop offset="0" stop-color="#1d130d"/><stop offset=".3" stop-color="#4e3729"/><stop offset=".62" stop-color="#36261c"/><stop offset="1" stop-color="#170f0a"/></linearGradient>
+        <linearGradient id="${pfx}glass" x1="0" x2="1"><stop offset="0" stop-color="#fff" stop-opacity=".16"/><stop offset=".22" stop-color="#fff" stop-opacity=".03"/><stop offset=".78" stop-color="#fff" stop-opacity=".05"/><stop offset="1" stop-color="#fff" stop-opacity=".2"/></linearGradient>
         <linearGradient id="${pfx}liq" x1="0" y1="0" x2="0" y2="1">${J.stops.map((c, n) => `<stop offset="${(n / (J.stops.length - 1)).toFixed(3)}" stop-color="${c}"/>`).join('')}</linearGradient>
-        <linearGradient id="${pfx}side" x1="0" x2="1"><stop offset="0" stop-color="#000" stop-opacity=".35"/><stop offset=".3" stop-color="#000" stop-opacity="0"/><stop offset=".75" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".4"/></linearGradient>
+        <linearGradient id="${pfx}side" x1="0" x2="1"><stop offset="0" stop-color="#000" stop-opacity=".38"/><stop offset=".28" stop-color="#000" stop-opacity="0"/><stop offset=".72" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".42"/></linearGradient>
         <linearGradient id="${pfx}shim" x1="0" y1="0" x2="0" y2="1" spreadMethod="reflect" gradientUnits="objectBoundingBox">
-          <stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".5" stop-color="#fff" stop-opacity=".55"/><stop offset="1" stop-color="#fff" stop-opacity="0"/>
+          <stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".5" stop-color="#fff" stop-opacity=".5"/><stop offset="1" stop-color="#fff" stop-opacity="0"/>
           <animateTransform attributeName="gradientTransform" type="translate" values="0 -1;0 1" dur="${(4 + Math.random() * 2).toFixed(2)}s" repeatCount="indefinite"/>
         </linearGradient>
         <radialGradient id="${pfx}aura"><stop offset="0" stop-color="${J.color}" stop-opacity=".7"/><stop offset=".45" stop-color="${J.color}" stop-opacity=".22"/><stop offset="1" stop-color="${J.color}" stop-opacity="0"/></radialGradient>
-        <clipPath id="${pfx}clip"><rect id="${pfx}level" x="-19" y="66" width="38" height="96" rx="4"/></clipPath>
+        <clipPath id="${pfx}clip"><rect id="${pfx}level" x="-16" y="${VIAL_TUBE.top}" width="32" height="${VIAL_TUBE.height}" rx="3"/></clipPath>
       </defs>
       <ellipse cx="0" cy="112" rx="95" ry="120" fill="url(#${pfx}aura)"><animate attributeName="opacity" values=".55;1;.55" dur="${dur}s" repeatCount="indefinite"/></ellipse>
-      <circle cx="0" cy="20" r="5" fill="none" stroke="${B}" stroke-width="2.6"/>
-      <rect x="-27" y="25" width="54" height="24" rx="5" fill="${M}" stroke="#0b0a09"/>
-      <rect x="-21" y="31" width="9" height="11" rx="1.6" fill="${B}"/><rect x="-4.5" y="31" width="9" height="11" rx="1.6" fill="${B}"/><rect x="12" y="31" width="9" height="11" rx="1.6" fill="${B}"/>
-      <rect x="-24" y="49" width="48" height="4" rx="2" fill="${B}"/><rect x="-23" y="55" width="46" height="4" rx="2" fill="${B}"/>
-      <rect class="vial-glass" x="-22" y="61" width="44" height="105" rx="7" fill="rgba(18,16,40,.82)" stroke="rgba(255,255,255,.14)"/>
+
+      <!-- hook ring and hinge clasp -->
+      <circle cx="0" cy="19" r="4.5" fill="none" stroke="${B}" stroke-width="2.4"/>
+      <rect x="10" y="20" width="9" height="5" rx="1.2" fill="${B}" stroke="#3a2a14" stroke-width=".6"/>
+      <circle cx="12.5" cy="22.5" r="1.1" fill="#3a2a14"/>
+
+      <!-- glass tube (drawn first so the cap and base sit over its ends) -->
+      <rect x="-19" y="56" width="38" height="114" rx="5" fill="rgba(16,18,34,.55)"/>
       <g clip-path="url(#${pfx}clip)">
-        <rect id="${pfx}liquid" x="-19" y="66" width="38" height="96" fill="url(#${pfx}liq)"/>
-        <rect x="-19" y="64" width="38" height="100" fill="url(#${pfx}side)"/>
-        <rect x="-19" y="64" width="38" height="100" fill="url(#${pfx}shim)" opacity=".28"/>
-        <rect id="${pfx}surface" x="-19" y="66" width="38" height="2.4" fill="${J.stops[2]}" opacity=".85"/>
-        <circle cx="-8" cy="160" r="2.2" fill="${J.hi}"><animate attributeName="cy" values="162;70" dur="3.4s" repeatCount="indefinite"/><animate attributeName="opacity" values="0;.9;0" dur="3.4s" repeatCount="indefinite"/></circle>
-        <circle cx="7" cy="160" r="1.6" fill="${J.hi}"><animate attributeName="cy" values="162;75" dur="4.6s" begin="1.2s" repeatCount="indefinite"/><animate attributeName="opacity" values="0;.8;0" dur="4.6s" begin="1.2s" repeatCount="indefinite"/></circle>
-        <circle cx="12" cy="160" r="1.3" fill="#fff"><animate attributeName="cy" values="162;80" dur="2.8s" begin=".6s" repeatCount="indefinite"/><animate attributeName="opacity" values="0;.7;0" dur="2.8s" begin=".6s" repeatCount="indefinite"/></circle>
+        <rect id="${pfx}liquid" x="-16" y="${VIAL_TUBE.top}" width="32" height="${VIAL_TUBE.height}" fill="url(#${pfx}liq)"/>
+        <rect x="-16" y="${VIAL_TUBE.top}" width="32" height="${VIAL_TUBE.height}" fill="url(#${pfx}side)"/>
+        <rect x="-16" y="${VIAL_TUBE.top}" width="32" height="${VIAL_TUBE.height}" fill="url(#${pfx}shim)" opacity=".26"/>
+        <ellipse id="${pfx}surface" cx="0" cy="${VIAL_TUBE.top}" rx="16" ry="3.2" fill="${J.stops[2]}" opacity=".9"/>
+        <circle cx="-7" cy="160" r="2" fill="${J.hi}"><animate attributeName="cy" values="162;72" dur="3.4s" repeatCount="indefinite"/><animate attributeName="opacity" values="0;.9;0" dur="3.4s" repeatCount="indefinite"/></circle>
+        <circle cx="6" cy="160" r="1.5" fill="${J.hi}"><animate attributeName="cy" values="162;76" dur="4.6s" begin="1.2s" repeatCount="indefinite"/><animate attributeName="opacity" values="0;.8;0" dur="4.6s" begin="1.2s" repeatCount="indefinite"/></circle>
       </g>
-      <rect x="-16" y="70" width="3.5" height="86" rx="1.75" fill="rgba(255,255,255,.28)"/>
-      <path d="M-22 67 L0 82 L22 67" fill="none" stroke="${B}" stroke-width="3" stroke-linejoin="round"/>
-      <line x1="0" y1="82" x2="0" y2="150" stroke="${B}" stroke-width="2.6"/>
-      <path d="M-22 162 L0 150 L22 162" fill="none" stroke="${B}" stroke-width="3" stroke-linejoin="round"/>
-      <rect x="-24" y="164" width="48" height="5" rx="2" fill="${B}"/>
-      <rect x="-25" y="168" width="50" height="28" rx="6" fill="${M}" stroke="#0b0a09"/>
-      <circle cx="9" cy="182" r="5.2" fill="none" stroke="${B}" stroke-width="2.3"/>
-      <rect x="-23" y="191" width="46" height="3" rx="1.5" fill="${B}"/>`;
+      <rect class="vial-glass" x="-19" y="56" width="38" height="114" rx="5" fill="url(#${pfx}glass)" stroke="rgba(255,255,255,.24)" stroke-width="1"/>
+      <rect x="-15" y="64" width="2.8" height="96" rx="1.4" fill="rgba(255,255,255,.3)"/>
+      <rect x="11.5" y="70" width="1.4" height="84" rx=".7" fill="rgba(255,255,255,.14)"/>
+
+      <!-- brass spine: a Y under the cap, a fork into the coils -->
+      <path d="M-15 57 L0 71 L15 57" fill="none" stroke="${B}" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
+      <line x1="0" y1="71" x2="0" y2="153" stroke="${B}" stroke-width="2.2"/>
+      <path d="M-16 169 L0 153 L16 169" fill="none" stroke="${B}" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
+
+      <!-- cap: brass rim, weathered leather band, wraps, octagonal window -->
+      <rect x="-22" y="24" width="44" height="6.5" rx="3" fill="${BV}" stroke="#3a2a14" stroke-width=".6"/>
+      <rect x="-23" y="29.5" width="46" height="28" rx="3" fill="${L}" stroke="#0e0906" stroke-width=".8"/>
+      <ellipse cx="-11" cy="44" rx="7" ry="5" fill="#000" opacity=".16"/><ellipse cx="13" cy="37" rx="5" ry="3.5" fill="#000" opacity=".14"/>
+      <rect x="-23" y="33" width="46" height="2.2" rx="1.1" fill="${B}"/>
+      <path d="M-23 53.5 Q0 48.5 23 53.5" fill="none" stroke="${B}" stroke-width="2.2"/>
+      <polygon points="${polygon(8, 0, 43, 7.4, Math.PI / 8)}" fill="${B}" stroke="#2a1d10" stroke-width=".8"/>
+      <polygon points="${polygon(8, 0, 43, 4.8, Math.PI / 8)}" fill="#1b2a33"/>
+      <path d="M-2.6 40.6 L1.6 39.8" stroke="rgba(255,255,255,.55)" stroke-width="1.1" stroke-linecap="round"/>
+
+      <!-- stacked brass coils -->
+      <rect x="-20" y="168" width="40" height="19" fill="#1a110a"/>
+      ${coils}
+
+      <!-- chamfered base with hex bolts -->
+      <path d="M-17 187 H17 L21 191 V203 L17 207 H-17 L-21 203 V191 Z" fill="${L}" stroke="#0e0906" stroke-width=".8"/>
+      <ellipse cx="9" cy="200" rx="6" ry="3" fill="#000" opacity=".15"/>
+      ${hexBolt(0, 197, 4.4)}
+      ${hexBolt(-21.5, 196, 3)}
+      ${hexBolt(21.5, 196, 3)}`;
   }
   function setVialLevel(pfx, count) {
     const r = document.getElementById(pfx + 'level'); if (!r) return;
     const lvl = 0.94; // always nearly full: the vials are for choosing, not counting (count is unused)
-    const h = 96 * lvl;
-    const y = String(66 + 96 - h);
-    r.setAttribute('y', y); r.setAttribute('height', String(h));
-    // Stretch the banded gradient over the liquid that shows, so every color band stays visible.
+    const h = VIAL_TUBE.height * lvl;
+    const y = VIAL_TUBE.top + VIAL_TUBE.height - h;
+    r.setAttribute('y', String(y)); r.setAttribute('height', String(h));
+    // Stretch the banded gradient over the liquid that shows, so every colour band stays visible.
     const liq = document.getElementById(pfx + 'liquid');
-    if (liq) { liq.setAttribute('y', y); liq.setAttribute('height', String(h)); }
-    document.getElementById(pfx + 'surface')?.setAttribute('y', y);
+    if (liq) { liq.setAttribute('y', String(y)); liq.setAttribute('height', String(h)); }
+    document.getElementById(pfx + 'surface')?.setAttribute('cy', String(y)); // the liquid's surface ellipse
   }
 
   function buildVials() {
@@ -366,7 +402,7 @@
           <line x1="0" y1="0" x2="0" y2="${p.wire}" stroke="#2b241c" stroke-width="2.2"/>
           <circle cx="0" cy="0" r="3" fill="#3b3024"/>
           <g transform="translate(0 ${p.wire - 15})">${vialMarkup(k, 'v' + k)}</g>
-          <text class="vial-label" x="0" y="${p.wire + 212}" text-anchor="middle" font-size="19" fill="#f4e6c8" stroke="rgba(0,0,0,.75)" stroke-width="4" paint-order="stroke">${esc(JARS[k].short)}</text>
+          <text class="vial-label" x="0" y="${p.wire + 222}" text-anchor="middle" font-size="19" fill="#f4e6c8" stroke="rgba(0,0,0,.75)" stroke-width="4" paint-order="stroke">${esc(JARS[k].short)}</text>
         </g></g></g>`;
     }).join('');
     $$('.vial-hit', svg).forEach((g) => {
@@ -745,7 +781,7 @@
       <div class="chips">${vibes.map(([k, n, c]) => `<button class="chip${k === 'any' ? ' plain' : ''}" style="--c:${c}" data-vibe="${k}" aria-pressed="${a.vibe === k}">${esc(n)}</button>`).join('')}</div>
       <label class="toggle-row"><input type="checkbox" id="drawBoth" ${a.bothOnly ? 'checked' : ''}> Only ones we're both into</label>
       <div class="draw-stage">
-        <svg class="big-vial" id="bigVial" viewBox="-46 10 92 196" style="--glow:${J.color}" aria-hidden="true">${vialMarkup(a.jar, 'big')}</svg>
+        <svg class="big-vial" id="bigVial" viewBox="-46 8 92 204" style="--glow:${J.color}" aria-hidden="true">${vialMarkup(a.jar, 'big')}</svg>
       </div>
       ${res ? resultHTML(res) : ''}
       <div class="btn-row stretch">

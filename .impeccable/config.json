@@ -1,0 +1,26 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "gradient-text",
+        "value": "*",
+        "files": [
+          "styles.css"
+        ],
+        "createdAt": "2026-11-22T10:17:15.188Z",
+        "reason": "user confirmed: keep the brass Arcane-style 'Shimmer & Spark' title lettering"
+      },
+      {
+        "rule": "gradient-text",
+        "value": "*",
+        "files": [
+          "index.html"
+        ],
+        "createdAt": "2026-11-22T10:17:15.425Z",
+        "reason": "user confirmed: keep the brass Arcane-style 'Shimmer & Spark' title lettering"
+      }
+    ]
+  }
+}

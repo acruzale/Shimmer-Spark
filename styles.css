@@ -221,9 +221,7 @@ img { max-width: 100%; }
 }
 .card:hover { border-color: color-mix(in srgb, var(--c) 70%, transparent); }
 .card:active { transform: scale(.99); }
-.card::before { /* the colored paper edge */
-  content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--c); box-shadow: 0 0 12px var(--c);
-}
+/* No coloured side edge: the vibe shows in the letter tile's glow and the vibe name. */
 .thumb {
   width: 76px; height: 76px; border-radius: 8px; object-fit: cover; background: #111;
   display: grid; place-items: center; overflow: hidden;

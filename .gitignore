@@ -7,3 +7,7 @@ client_secret*.json
 
 # Spare copy of the home picture (the app uses assets/home.jpg)
 powderandekko.jpg
+
+# Impeccable: local cache (the settings in .impeccable/config.json are shared)
+.impeccable/hook.cache.json
+.impeccable/config.local.json
