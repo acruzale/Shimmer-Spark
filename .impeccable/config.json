@@ -20,6 +20,42 @@
         ],
         "createdAt": "2026-11-22T10:17:15.425Z",
         "reason": "user confirmed: keep the brass Arcane-style 'Shimmer & Spark' title lettering"
+      },
+      {
+        "rule": "side-tab",
+        "value": "*",
+        "files": [
+          "styles.css"
+        ],
+        "createdAt": "2026-11-22T10:25:27.477Z",
+        "reason": "user confirmed: keep the glowing coloured vibe edge on idea cards (tried without, preferred it back); it is the only side bar left"
+      },
+      {
+        "rule": "dark-glow",
+        "value": "*",
+        "files": [
+          "styles.css"
+        ],
+        "createdAt": "2026-11-22T10:25:27.832Z",
+        "reason": "user confirmed: keep the glow on vibe chips, card edges and badges (Both in, name pills, I'm in dots); trimmed elsewhere"
+      },
+      {
+        "rule": "side-tab",
+        "value": "*",
+        "files": [
+          "index.html"
+        ],
+        "createdAt": "2026-11-22T10:25:28.197Z",
+        "reason": "user confirmed: keep the glowing coloured vibe edge on idea cards (tried without, preferred it back); it is the only side bar left"
+      },
+      {
+        "rule": "dark-glow",
+        "value": "*",
+        "files": [
+          "index.html"
+        ],
+        "createdAt": "2026-11-22T10:25:28.532Z",
+        "reason": "user confirmed: keep the glow on vibe chips, card edges and badges (Both in, name pills, I'm in dots); trimmed elsewhere"
       }
     ]
   }
