@@ -27,6 +27,7 @@ create table if not exists public.ideas (
   notes        text not null default '',
   link         text not null default '',
   place        text not null default '',
+  maps_url     text not null default '',
   jar          text not null check (jar in ('outside', 'indoor', 'home')),
   vibe         text not null,
   cover_url    text,
@@ -37,6 +38,9 @@ create table if not exists public.ideas (
   created_by   uuid default auth.uid(),
   created_at   timestamptz not null default now()
 );
+
+-- Added later; keeps older databases in step.
+alter table public.ideas add column if not exists maps_url text not null default '';
 
 create index if not exists ideas_space_idx on public.ideas (space_id);
 

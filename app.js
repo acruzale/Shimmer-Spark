@@ -75,6 +75,15 @@
   const hostOf = (u) => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return ''; } };
   const firstUrl = (text) => (String(text || '').match(/https?:\/\/[^\s<>"']+/) || [])[0] || '';
 
+  // Google Maps links: full ones (google.com/maps/...) and the short ones the app shares (maps.app.goo.gl/...).
+  const isMapsUrl = (u) => /^https:\/\/(www\.)?(google\.[a-z.]+\/maps|maps\.google\.[a-z.]+|maps\.app\.goo\.gl|goo\.gl\/maps)/i.test(String(u || ''));
+  // Full links carry the place name (…/maps/place/Board+Game+Cafe/…); short links don't.
+  function placeFromMapsUrl(u) {
+    const m = String(u || '').match(/\/maps\/place\/([^/@?]+)/i);
+    if (!m) return '';
+    try { return decodeURIComponent(m[1].replace(/\+/g, ' ')).trim().slice(0, 140); } catch { return ''; }
+  }
+
   function mediaInfo(url) {
     const u = String(url || '');
     let m = u.match(/instagram\.com\/(?:[\w.]+\/)?(p|reel|reels|tv)\/([A-Za-z0-9_-]+)/i);
@@ -113,7 +122,7 @@
 
   // ---------------------------------------------------------------- stores
   const blankIdea = (f, me) => ({
-    id: uid(), title: '', notes: '', link: '', place: '', jar: 'home', vibe: 'cozy', cover_url: null,
+    id: uid(), title: '', notes: '', link: '', place: '', maps_url: '', jar: 'home', vibe: 'cozy', cover_url: null,
     interested: [], status: 'open', planned_for: null, planned_time: null,
     created_by: me, created_at: new Date().toISOString(), ...f,
   });
@@ -240,7 +249,7 @@
       this.spaceId = data; await this.refresh(); this.subscribe();
     }
     async add(f) {
-      const row = { title: f.title, notes: f.notes || '', link: f.link || '', place: f.place || '', jar: f.jar, vibe: f.vibe, cover_url: f.cover_url || null, interested: f.interested || [], space_id: this.spaceId };
+      const row = { title: f.title, notes: f.notes || '', link: f.link || '', place: f.place || '', maps_url: f.maps_url || '', jar: f.jar, vibe: f.vibe, cover_url: f.cover_url || null, interested: f.interested || [], space_id: this.spaceId };
       const { data, error } = await this.sb.from('ideas').insert(row).select().single();
       if (error) throw error;
       this.upsert(data); this.emit(); return data;
@@ -718,7 +727,7 @@
         <div class="btn-row stretch"><button class="btn ${meIn(i) ? '' : 'primary'}" data-interest="${esc(i.id)}">${meIn(i) ? "I'm in ✓ (tap to take back)" : "I'm in"}</button></div>` : ''}
       ${planBlock}
       <dl class="meta-list">
-        ${i.place ? `<dt>Where</dt><dd><a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(i.place)}" target="_blank" rel="noopener">${esc(i.place)}</a></dd>` : ''}
+        ${(i.place || i.maps_url) ? `<dt>Where</dt><dd><a href="${esc(safeUrl(i.maps_url) || 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(i.place))}" target="_blank" rel="noopener">${esc(i.place || 'Open in Google Maps')}</a>${safeUrl(i.maps_url) && i.place ? ' <span class="muted small">· Google Maps</span>' : ''}</dd>` : ''}
         ${link && !media ? `<dt>Link</dt><dd><a href="${esc(link)}" target="_blank" rel="noopener">${esc(hostOf(link))}</a></dd>` : ''}
         <dt>Added</dt><dd>${esc(nameOf(i.created_by))} · ${esc(fmtDate(isoOf(new Date(i.created_at)), { month: 'short', day: 'numeric', year: 'numeric' }))}</dd>
       </dl>
@@ -769,6 +778,10 @@
         <div class="field"><span class="label">Vibe</span><div class="chips" id="fVibe">${vibesHTML()}</div></div>
         <div class="field"><label for="fPlace">Where (optional)</label>
           <input class="input" id="fPlace" maxlength="140" placeholder="Name of the place or area" value="${esc(f.place)}"></div>
+        <div class="field"><label for="fMaps">Google Maps link (optional)</label>
+          <div class="input-row"><input class="input" id="fMaps" type="url" inputmode="url" placeholder="https://maps.app.goo.gl/…" value="${esc(f.maps_url || '')}" autocomplete="off">
+          <button type="button" class="btn ghost" id="pasteMaps">Paste</button></div>
+          <p class="hint" id="mapsHint">In Google Maps, open the place, tap Share and copy the link.</p></div>
         <div class="field"><label for="fNotes">Notes (optional)</label>
           <textarea class="textarea" id="fNotes" maxlength="2000" placeholder="Opening hours, price, what to bring…">${esc(f.notes)}</textarea></div>
         <div class="field"><span class="label">Cover picture (optional)</span>
@@ -800,6 +813,26 @@
         if (!$('#fTitle', body).value) $('#fTitle', body).focus();
       } catch { toast('Paste was blocked. Long-press the box and choose Paste.'); $('#fLink', body).focus(); }
     });
+    const mapsChanged = () => {
+      const v = $('#fMaps', body).value.trim();
+      const name = placeFromMapsUrl(v);
+      if (name && !$('#fPlace', body).value.trim()) $('#fPlace', body).value = name;
+      $('#mapsHint', body).textContent = !v ? 'In Google Maps, open the place, tap Share and copy the link.'
+        : !safeUrl(v) ? 'That does not look like a full link. It should start with https://'
+        : isMapsUrl(v) ? 'Google Maps link: tapping "Where" will open this place.'
+        : 'This is not a Google Maps link, but it will still open when you tap "Where".';
+    };
+    $('#fMaps', body).addEventListener('input', mapsChanged);
+    $('#pasteMaps', body).addEventListener('click', async () => {
+      try {
+        const txt = await navigator.clipboard.readText();
+        $('#fMaps', body).value = firstUrl(txt) || txt.trim();
+        // Google Maps copies "Place name\nhttps://…": use the name if Where is empty.
+        const firstLine = txt.split('\n')[0].trim();
+        if (firstLine && !/^https?:/i.test(firstLine) && !$('#fPlace', body).value.trim()) $('#fPlace', body).value = firstLine.slice(0, 140);
+        mapsChanged();
+      } catch { toast('Paste was blocked. Long-press the box and choose Paste.'); $('#fMaps', body).focus(); }
+    });
     $$('#fJar button', body).forEach((b) => b.addEventListener('click', () => {
       f.jar = b.dataset.jar; f.vibe = JARS[f.jar].vibes[0];
       $$('#fJar button', body).forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
@@ -824,12 +857,15 @@
       const link = rawLink ? safeUrl(rawLink) : '';
       if (!title) { err.textContent = 'Give the date a short name so you can recognise it.'; err.hidden = false; $('#fTitle', body).focus(); return; }
       if (rawLink && !link) { err.textContent = 'The link should start with https://. Paste the full link from Instagram or Telegram.'; err.hidden = false; return; }
+      const rawMaps = $('#fMaps', body).value.trim();
+      const maps_url = rawMaps ? safeUrl(rawMaps) : '';
+      if (rawMaps && !maps_url) { err.textContent = 'The Google Maps link should start with https://. In Google Maps tap Share, then Copy link.'; err.hidden = false; return; }
       err.hidden = true;
       const btn = $('#saveIdea', body); btn.disabled = true; btn.textContent = 'Saving…';
       try {
         let cover_url = removeCover ? null : (existing ? existing.cover_url : null);
         if (coverBlob) cover_url = await store.uploadCover(coverBlob);
-        const fields = { title, link, place: $('#fPlace', body).value.trim(), notes: $('#fNotes', body).value.trim(), jar: f.jar, vibe: f.vibe, cover_url };
+        const fields = { title, link, place: $('#fPlace', body).value.trim(), maps_url, notes: $('#fNotes', body).value.trim(), jar: f.jar, vibe: f.vibe, cover_url };
         let id;
         if (existing) { await store.update(existing.id, fields); id = existing.id; toast('Saved'); }
         else {
@@ -1027,6 +1063,13 @@
     const link = safeUrl(qs.get('url') || '') || firstUrl(qs.get('text')) || firstUrl(qs.get('title'));
     const rawTitle = (qs.get('title') || '').trim();
     history.replaceState(null, '', location.pathname);
+    if (isMapsUrl(link)) {
+      // Shared from Google Maps: the text is usually "Place name\nhttps://maps.app.goo.gl/…".
+      const firstLine = String(qs.get('text') || '').split('\n')[0].trim();
+      const name = [rawTitle, firstLine, placeFromMapsUrl(link)].find((s) => s && !/^https?:/i.test(s)) || '';
+      openSheet('edit', { prefill: { maps_url: link, place: name.slice(0, 140), title: name.slice(0, 120) } });
+      return;
+    }
     openSheet('edit', { prefill: { link, title: rawTitle && !/^https?:/.test(rawTitle) ? rawTitle.slice(0, 120) : '' } });
   }
 
