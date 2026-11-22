@@ -1165,7 +1165,7 @@
           <button type="button" class="btn ghost" id="pasteMaps">Paste</button></div>
           <p class="hint" id="mapsHint">In Google Maps, open the place, tap Share and copy the link.</p></div>
         <div class="field"><label for="fDeadline">Last day</label>
-          <div class="input-row"><input class="input" id="fDeadline" type="date" value="${esc(f.deadline || '')}">
+          <div class="input-row"><input class="input" id="fDeadline" type="date">
             <button type="button" class="btn ghost clear-date" id="clearDeadline"${f.deadline ? '' : ' hidden'}>Clear</button></div>
           <p class="hint">For events that close, like a seasonal ice rink or an exhibition. It shows under "Ending soon" in Plans.</p></div>
         <div class="field"><label for="fNotes">Notes</label>
@@ -1219,7 +1219,9 @@
     }));
     bindVibes();
     const dl = $('#fDeadline', body), clearDl = $('#clearDeadline', body);
+    dl.value = f.deadline || ''; // set here, not as an attribute, so the calendar's Reset empties it
     dl.addEventListener('input', () => { clearDl.hidden = !dl.value; });
+    dl.addEventListener('change', () => { clearDl.hidden = !dl.value; });
     clearDl.addEventListener('click', () => { dl.value = ''; dl.removeAttribute('value'); f.deadline = null; clearDl.hidden = true; });
 
     $('#ideaForm', body).addEventListener('submit', async (e) => {
@@ -1261,32 +1263,30 @@
       <h2 class="sheet-title">Pick a day</h2>
       <p class="sheet-sub">${esc(i.title)}</p>
       <form id="planForm" class="gate">
-        <div class="field"><label for="pDate">Day</label><div class="input-row"><input class="input" id="pDate" type="date" value="${esc(def)}" min="${esc(today())}"${hasLiveDeadline(i) ? ` max="${esc(i.deadline)}"` : ''}>
-          <button type="button" class="btn ghost clear-date" data-clear="pDate">Clear</button></div>
+        <div class="field"><label for="pDate">Day</label><div class="input-row"><input class="input" id="pDate" type="date" min="${esc(today())}"${hasLiveDeadline(i) ? ` max="${esc(i.deadline)}"` : ''}>
+          <button type="button" class="btn ghost clear-date" id="clearDay">Clear</button></div>
           ${hasLiveDeadline(i) ? `<p class="hint">${esc(deadlineText(i, true))}, so pick a day before then.</p>` : ''}</div>
-        <div class="field"><label for="pTime">Time (optional)</label><div class="input-row"><input class="input" id="pTime" type="time" value="${esc(i.planned_time || '')}">
-          <button type="button" class="btn ghost clear-date" data-clear="pTime"${i.planned_time ? '' : ' hidden'}>Clear</button></div></div>
+        <div class="field"><label for="pTime">Time (optional)</label><input class="input" id="pTime" type="time"></div>
         <div class="btn-row stretch"><button class="btn primary" type="submit">Save the date</button></div>
-        <div class="btn-row stretch"><button class="btn ghost" type="button" id="noDayYet">${i.status === 'planned' ? 'Remove the day' : 'Not yet'}</button></div>
       </form>`;
-    // iOS "Reset" only puts the old value back, so each field gets a real Clear button.
-    $$('[data-clear]', body).forEach((b) => {
-      const inp = $('#' + b.dataset.clear, body);
-      inp.addEventListener('input', () => { b.hidden = !inp.value; });
-      b.addEventListener('click', () => { inp.value = ''; inp.removeAttribute('value'); b.hidden = true; });
-    });
-    // Both in but no day yet: go back without saving, or take a day you already saved off again.
-    $('#noDayYet', body).addEventListener('click', async () => {
-      if (i.status !== 'planned') return openSheet('detail', { id: i.id });
-      try {
-        await store.update(i.id, { status: 'open', planned_for: null, planned_time: null });
-        toast('Day removed. It stays in Both in.');
-        openSheet('detail', { id: i.id });
-      } catch (ex) { toast(ex.message || 'Could not save that'); }
-    });
+    $('#pDate', body).value = def; // set here, not as an attribute, so the calendar's Reset empties it
+    $('#pTime', body).value = i.planned_time || '';
+    const day = $('#pDate', body), clearDay = $('#clearDay', body);
+    const syncClear = () => { clearDay.hidden = !day.value; };
+    day.addEventListener('input', syncClear); day.addEventListener('change', syncClear); syncClear();
+    clearDay.addEventListener('click', () => { day.value = ''; syncClear(); });
     $('#planForm', body).addEventListener('submit', async (e) => {
       e.preventDefault();
-      const d = $('#pDate', body).value; if (!d) return toast('Choose a day, or tap “Not yet”');
+      const d = $('#pDate', body).value;
+      if (!d) { // day cleared: take a saved day off again, or just go back
+        if (i.status !== 'planned') return openSheet('detail', { id: i.id });
+        try {
+          await store.update(i.id, { status: 'open', planned_for: null, planned_time: null });
+          toast('Day removed. It stays in Both in.');
+          openSheet('detail', { id: i.id });
+        } catch (ex) { toast(ex.message || 'Could not save that'); }
+        return;
+      }
       try {
         await store.update(i.id, { status: 'planned', planned_for: d, planned_time: $('#pTime', body).value || null });
         toast('Saved the date');
