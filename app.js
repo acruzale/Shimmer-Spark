@@ -960,7 +960,8 @@
       btn.disabled = true; v.classList.remove('shake'); void v.getBoundingClientRect(); v.classList.add('shake');
       const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
       setTimeout(() => {
-        a.resultId = pick.id; renderSheet(true);
+        // Redraw in place (keeping where you'd scrolled to), then nudge the unrolled scroll into view if needed.
+        a.resultId = pick.id; renderSheet();
         $('#drawResult')?.scrollIntoView({ block: 'nearest', behavior: reduce ? 'auto' : 'smooth' });
       }, reduce ? 0 : 900);
     });
