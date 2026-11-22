@@ -122,7 +122,7 @@
 
   // ---------------------------------------------------------------- stores
   const blankIdea = (f, me) => ({
-    id: uid(), title: '', notes: '', link: '', place: '', maps_url: '', jar: 'home', vibe: 'cozy', cover_url: null,
+    id: uid(), title: '', notes: '', link: '', place: '', maps_url: '', deadline: null, jar: 'home', vibe: 'cozy', cover_url: null,
     interested: [], status: 'open', planned_for: null, planned_time: null,
     created_by: me, created_at: new Date().toISOString(), ...f,
   });
@@ -249,7 +249,7 @@
       this.spaceId = data; await this.refresh(); this.subscribe();
     }
     async add(f) {
-      const row = { title: f.title, notes: f.notes || '', link: f.link || '', place: f.place || '', maps_url: f.maps_url || '', jar: f.jar, vibe: f.vibe, cover_url: f.cover_url || null, interested: f.interested || [], space_id: this.spaceId };
+      const row = { title: f.title, notes: f.notes || '', link: f.link || '', place: f.place || '', maps_url: f.maps_url || '', deadline: f.deadline || null, jar: f.jar, vibe: f.vibe, cover_url: f.cover_url || null, interested: f.interested || [], space_id: this.spaceId };
       const { data, error } = await this.sb.from('ideas').insert(row).select().single();
       if (error) throw error;
       this.upsert(data); this.emit(); return data;
@@ -441,6 +441,30 @@
     if (v === 'us') renderUs();
   }
 
+  // Previous dates: the day you went (older entries only have the planned day).
+  const wentOnDate = (i) => i.done_on || i.planned_for || null;
+
+  // Deadlines: the last day an event is on (a seasonal rink, an exhibition).
+  const daysUntil = (iso) => Math.round((new Date(iso + 'T12:00:00') - new Date(today() + 'T12:00:00')) / 86400000);
+  const hasLiveDeadline = (i) => Boolean(i.deadline) && i.status !== 'done' && daysUntil(i.deadline) >= 0;
+  const isExpired = (i) => Boolean(i.deadline) && i.status !== 'done' && daysUntil(i.deadline) < 0;
+  function deadlineText(i, long = false) {
+    const n = daysUntil(i.deadline);
+    const day = fmtDate(i.deadline, long ? { weekday: 'short', month: 'long', day: 'numeric' } : { month: 'short', day: 'numeric' });
+    if (n < 0) return `Ended ${day}`;
+    if (n === 0) return 'Ends today';
+    if (n === 1) return 'Ends tomorrow';
+    return long ? `Ends ${day} · ${n} days left` : `Ends ${day}`;
+  }
+  const deadlineTag = (i) => (i.deadline && i.status !== 'done')
+    ? `<span class="deadline-tag${daysUntil(i.deadline) <= 7 ? ' soon' : ''}${isExpired(i) ? ' past' : ''}">${esc(deadlineText(i))}</span>` : '';
+  // The two of you as name pills, lit when that person is in.
+  function whoPills(idea) {
+    const p = partner();
+    const pill = (name, on) => `<span class="who-pill${on ? ' on' : ''}">${on ? '✓ ' : ''}${esc(name)}</span>`;
+    return `<span class="who-pills">${pill(me().display_name, meIn(idea))}${p ? pill(p.display_name, partnerIn(idea)) : ''}</span>`;
+  }
+
   function vibeChip(vibe, extra = '') {
     const V = VIBES[vibe] || { name: vibe, color: '#c9a15a' };
     return `<span class="vibe-tag" style="--c:${V.color}" ${extra}>${esc(V.name)}</span>`;
@@ -453,11 +477,33 @@
     if (idea.cover_url) return `<img class="thumb" src="${esc(idea.cover_url)}" alt="" loading="lazy">`;
     return `<span class="thumb note" aria-hidden="true">${esc((idea.title || '?').trim().charAt(0).toUpperCase())}</span>`;
   }
-  function cardHTML(idea, { plan = false } = {}) {
+  function cardHTML(idea, { plan = false, deadline = false, memory = false } = {}) {
     const V = VIBES[idea.vibe] || { color: '#c9a15a' };
-    const left = plan && idea.planned_for
-      ? `<span class="plan-date"><span class="d">${new Date(idea.planned_for + 'T12:00:00').getDate()}</span><span class="m">${esc(fmtDate(idea.planned_for, { month: 'short' }))}</span></span>`
+    const dateBlock = (iso, cls = '') => `<span class="plan-date${cls}"><span class="d">${new Date(iso + 'T12:00:00').getDate()}</span><span class="m">${esc(fmtDate(iso, { month: 'short' }))}</span></span>`;
+    if (memory) {
+      const went = wentOnDate(idea);
+      return `<button class="card plan memory-card" style="--c:${V.color}" data-open-idea="${esc(idea.id)}">
+        ${went ? dateBlock(went, ' went') : thumbHTML(idea)}
+        <span class="card-body">
+          <span class="card-title">${esc(idea.title)}</span>
+          <span class="card-meta">${vibeChip(idea.vibe)}${went ? `<span>${esc(fmtDate(went, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' }))}</span>` : ''}</span>
+          ${idea.memory ? `<span class="memory-snippet">“${esc(idea.memory.length > 110 ? idea.memory.slice(0, 107) + '…' : idea.memory)}”</span>` : '<span class="muted small">Tap to add a memory</span>'}
+        </span>
+      </button>`;
+    }
+    const left = deadline && idea.deadline ? dateBlock(idea.deadline, ' ends')
+      : plan && idea.planned_for ? dateBlock(idea.planned_for)
       : thumbHTML(idea);
+    if (deadline) {
+      return `<button class="card plan" style="--c:${V.color}" data-open-idea="${esc(idea.id)}">
+        ${left}
+        <span class="card-body">
+          <span class="card-title">${esc(idea.title)}</span>
+          <span class="card-meta">${deadlineTag(idea)}${idea.status === 'planned' && idea.planned_for ? `<span class="planned-tag">Going ${esc(fmtDate(idea.planned_for))}</span>` : ''}</span>
+          ${whoPills(idea)}
+        </span>
+      </button>`;
+    }
     const site = mediaInfo(idea.link)?.site;
     let tag = '';
     if (idea.status === 'planned' && idea.planned_for) tag = `<span class="planned-tag">${esc(fmtDate(idea.planned_for))}${idea.planned_time ? ' · ' + esc(fmtTime(idea.planned_time)) : ''}</span>`;
@@ -468,7 +514,7 @@
       <span class="card-body">
         <span class="card-title">${esc(idea.title)}</span>
         <span class="card-meta">${vibeChip(idea.vibe)}${idea.place ? `<span>${esc(idea.place)}</span>` : ''}${site ? `<span>${site}</span>` : ''}</span>
-        <span class="card-meta">${whoDots(idea)}${tag}</span>
+        <span class="card-meta">${whoDots(idea)}${tag}${deadlineTag(idea)}</span>
       </span>
     </button>`;
   }
@@ -522,18 +568,30 @@
     const p = partner();
     const waiting = p ? store.ideas.filter((i) => i.status === 'open' && meIn(i) && !partnerIn(i)) : [];
     const theirs = p ? store.ideas.filter((i) => i.status === 'open' && partnerIn(i) && !meIn(i)) : [];
-    const done = store.ideas.filter((i) => i.status === 'done').sort((a, b) => (b.planned_for || '').localeCompare(a.planned_for || ''));
+    const done = store.ideas.filter((i) => i.status === 'done')
+      .sort((a, b) => (wentOnDate(b) || b.created_at.slice(0, 10)).localeCompare(wentOnDate(a) || a.created_at.slice(0, 10)));
+    const ending = store.ideas.filter(hasLiveDeadline).sort((a, b) => a.deadline.localeCompare(b.deadline));
+    const ended = store.ideas.filter((i) => isExpired(i) && i.status === 'open');
     const section = (title, items, opts, hint) => items.length ? `<h3>${esc(title)}</h3>${hint ? `<p class="muted small" style="margin:-8px 0 0">${esc(hint)}</p>` : ''}<div class="cards">${items.map((i) => cardHTML(i, opts)).join('')}</div>` : '';
     const pn = p ? p.display_name : 'your partner';
-    const any = upcoming.length + past.length + ready.length + waiting.length + theirs.length + done.length;
+    const any = upcoming.length + past.length + ready.length + waiting.length + theirs.length + done.length + ending.length + ended.length;
     el.innerHTML = `<div class="panel-inner">
       <h2 id="plansTitle">Plans</h2>
+      ${section('Ending soon', ending, { deadline: true }, 'Events with a last day. Check you have both decided before they close.')}
+      ${section('Deadline passed', ended, { deadline: true }, 'These have closed. Open one to delete it or change its last day.')}
       ${section('Coming up', upcoming, { plan: true })}
       ${section('Did you go?', past, { plan: true }, 'Open one to mark it done or pick a new day.')}
       ${section("You're both in", ready, {}, 'Pick a day and it gets a reminder.')}
       ${section(`${pn} is in. Are you?`, theirs, {})}
       ${section(`Waiting on ${pn}`, waiting, {})}
-      ${section('Memories', done, { plan: true })}
+      <h3>Previous dates</h3>
+      <div class="memories-head">
+        <p class="memories-count">${done.length
+          ? `You've been on <b>${done.length}</b> ${done.length === 1 ? 'date' : 'dates'} together`
+          : 'Dates you go on will be kept here, so you can look back on them.'}</p>
+        <button class="btn" data-act="log-past">Add a date you went on</button>
+      </div>
+      ${done.length ? `<div class="cards">${done.map((i) => cardHTML(i, { memory: true })).join('')}</div>` : ''}
       ${any ? '' : `<div class="empty"><p>When you both tap “I'm in” on an idea, it shows up here so you can pick a day.</p><button class="btn primary" data-act="home">Draw from a vial</button></div>`}
     </div>`;
   }
@@ -606,13 +664,13 @@
     if (!first && !LIVE_SHEETS.has(sheet.type)) return;
     const body = $('#sheetBody');
     const keepScroll = first ? 0 : body.scrollTop;
-    ({ draw: drawSheet, detail: detailSheet, edit: editSheet, plan: planSheet, signin: signinSheet, space: spaceSheet })[sheet.type](body, sheet.args);
+    ({ draw: drawSheet, detail: detailSheet, edit: editSheet, plan: planSheet, done: doneSheet, signin: signinSheet, space: spaceSheet })[sheet.type](body, sheet.args);
     body.scrollTop = keepScroll;
   }
 
   // Draw from a vial
   function drawPool(a) {
-    return store.ideas.filter((i) => i.jar === a.jar && i.status !== 'done' && (a.vibe === 'any' || i.vibe === a.vibe) && (!a.bothOnly || bothIn(i)));
+    return store.ideas.filter((i) => i.jar === a.jar && i.status !== 'done' && !isExpired(i) && (a.vibe === 'any' || i.vibe === a.vibe) && (!a.bothOnly || bothIn(i)));
   }
   function drawSheet(body, a) {
     const J = JARS[a.jar];
@@ -660,7 +718,8 @@
     return `<div class="draw-result" id="drawResult" style="--c:${V.color}">
       <span class="r-vibe">${esc(V.name)}</span>
       <span class="r-title">${esc(i.title)}</span>
-      ${i.place ? `<span>${esc(i.place)}</span>` : ''}
+      ${(i.place || i.maps_url) ? `<a class="r-place" href="${esc(safeUrl(i.maps_url) || 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(i.place))}" target="_blank" rel="noopener">${esc(i.place || 'Open in Google Maps')}</a>` : ''}
+      ${i.deadline ? `<span class="r-deadline">${esc(deadlineText(i, true))}</span>` : ''}
       ${i.notes ? `<span class="r-notes">${esc(i.notes.length > 160 ? i.notes.slice(0, 157) + '…' : i.notes)}</span>` : ''}
       <div class="btn-row" style="margin-top:6px">
         <button class="btn primary" data-open-idea="${esc(i.id)}">Open</button>
@@ -706,13 +765,16 @@
           <a class="btn" href="${esc(gcalURL(i))}" target="_blank" rel="noopener">Google Calendar</a>
         </div>
         <div class="btn-row stretch">
-          <button class="btn" id="doneBtn">We did it</button>
+          <button class="btn" id="doneBtn">We went on this date</button>
           <button class="btn ghost" id="replanBtn">Change day</button>
           <button class="btn ghost" id="unplanBtn">Unschedule</button>
         </div>`;
     } else if (i.status === 'done') {
-      planBlock = `<div class="match-banner">Done${i.planned_for ? ' · ' + esc(fmtDate(i.planned_for, { month: 'long', day: 'numeric', year: 'numeric' })) : ''}</div>
-        <div class="btn-row"><button class="btn ghost" id="reopenBtn">Put it back in the vial</button></div>`;
+      const wentOn = wentOnDate(i);
+      planBlock = `<div class="match-banner">We went${wentOn ? ' · ' + esc(fmtDate(wentOn, { weekday: 'short', month: 'long', day: 'numeric', year: 'numeric' })) : ''}</div>
+        ${i.memory ? `<blockquote class="memory">${esc(i.memory)}</blockquote>` : ''}
+        <div class="btn-row stretch"><button class="btn primary" id="memoryBtn">${i.memory ? 'Edit our memory' : 'Add a memory'}</button></div>
+        <div class="btn-row stretch"><button class="btn" id="againBtn">Do it again</button><button class="btn ghost" id="undoneBtn">Not done yet</button></div>`;
     } else if (both) {
       planBlock = `<div class="match-banner">You're both in</div>
         <div class="btn-row stretch"><button class="btn primary" id="planBtn">Pick a day</button></div>`;
@@ -726,9 +788,11 @@
       ${i.status !== 'done' ? `<div class="interest">${person(m, meIn(i))}${p ? person(p, partnerIn(i)) : `<div class="person"><span class="p-name">Partner</span><span class="p-state muted">Hasn't joined yet</span></div>`}</div>
         <div class="btn-row stretch"><button class="btn ${meIn(i) ? '' : 'primary'}" data-interest="${esc(i.id)}">${meIn(i) ? "I'm in ✓ (tap to take back)" : "I'm in"}</button></div>` : ''}
       ${planBlock}
+      ${i.status === 'open' ? '<div class="btn-row"><button class="btn ghost" id="wentBtn">We already went on this date</button></div>' : ''}
       <dl class="meta-list">
         ${(i.place || i.maps_url) ? `<dt>Where</dt><dd><a href="${esc(safeUrl(i.maps_url) || 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(i.place))}" target="_blank" rel="noopener">${esc(i.place || 'Open in Google Maps')}</a>${safeUrl(i.maps_url) && i.place ? ' <span class="muted small">· Google Maps</span>' : ''}</dd>` : ''}
         ${link && !media ? `<dt>Link</dt><dd><a href="${esc(link)}" target="_blank" rel="noopener">${esc(hostOf(link))}</a></dd>` : ''}
+        ${i.deadline ? `<dt>Last day</dt><dd>${deadlineTag(i) || esc(fmtDate(i.deadline, { month: 'long', day: 'numeric', year: 'numeric' }))}${hasLiveDeadline(i) ? ` <span class="muted small">${esc(deadlineText(i, true).split(' · ')[1] || '')}</span>` : ''}</dd>` : ''}
         <dt>Added</dt><dd>${esc(nameOf(i.created_by))} · ${esc(fmtDate(isoOf(new Date(i.created_at)), { month: 'short', day: 'numeric', year: 'numeric' }))}</dd>
       </dl>
       ${i.notes ? `<p class="notes">${esc(i.notes)}</p>` : ''}
@@ -740,9 +804,19 @@
     $('#planBtn', body)?.addEventListener('click', () => openSheet('plan', { id: i.id }));
     $('#replanBtn', body)?.addEventListener('click', () => openSheet('plan', { id: i.id }));
     $('#icsBtn', body)?.addEventListener('click', () => downloadICS(i));
-    $('#doneBtn', body)?.addEventListener('click', () => save(store.update(i.id, { status: 'done' }), 'Marked as done. Nice one.'));
+    $('#doneBtn', body)?.addEventListener('click', () => openSheet('done', { id: i.id }));
+    $('#wentBtn', body)?.addEventListener('click', () => openSheet('done', { id: i.id }));
+    $('#memoryBtn', body)?.addEventListener('click', () => openSheet('done', { id: i.id }));
+    $('#undoneBtn', body)?.addEventListener('click', () => save(store.update(i.id, { status: i.planned_for ? 'planned' : 'open', done_on: null }), 'Moved back out of previous dates'));
+    $('#againBtn', body)?.addEventListener('click', async () => {
+      try {
+        const { title, notes, link, place, maps_url, jar, vibe, cover_url } = i;
+        const copy = await store.add({ title, notes, link, place, maps_url, jar, vibe, cover_url, interested: [store.meId] });
+        toast(`A fresh copy is back in the ${JARS[jar].name} vial. Your memory stays here.`);
+        openSheet('detail', { id: copy.id });
+      } catch (ex) { toast(ex.message || 'Could not copy it'); }
+    });
     $('#unplanBtn', body)?.addEventListener('click', () => save(store.update(i.id, { status: 'open', planned_for: null, planned_time: null }), 'Unscheduled'));
-    $('#reopenBtn', body)?.addEventListener('click', () => save(store.update(i.id, { status: 'open', planned_for: null, planned_time: null, interested: [] }), 'Back in the vial'));
     $('#editBtn', body).addEventListener('click', () => openSheet('edit', { id: i.id }));
     $('#delBtn', body).addEventListener('click', () => {
       $('#confirmSlot', body).innerHTML = `<div class="confirm-box"><p style="margin:0">Delete “${esc(i.title)}” for both of you? This can't be undone.</p>
@@ -758,6 +832,8 @@
   // Add / edit
   function editSheet(body, a) {
     const existing = a.id ? store.find(a.id) : null;
+    const logDone = !existing && Boolean(a.prefill?.logDone); // adding a date you already went on
+    const saveLabel = existing ? 'Save changes' : logDone ? 'Next: when did you go?' : 'Drop it in the vial';
     const f = existing ? { ...existing } : { title: '', link: '', place: '', notes: '', jar: 'home', vibe: 'cozy', cover_url: null, ...(a.prefill || {}) };
     if (!JARS[f.jar]) f.jar = 'home';
     if (!JARS[f.jar].vibes.includes(f.vibe)) f.vibe = JARS[f.jar].vibes[0];
@@ -765,7 +841,7 @@
 
     const vibesHTML = () => JARS[f.jar].vibes.map((v) => `<button type="button" class="chip" style="--c:${VIBES[v].color}" data-vibe="${v}" aria-pressed="${f.vibe === v}">${esc(VIBES[v].name)}</button>`).join('');
     body.innerHTML = `
-      <h2 class="sheet-title">${existing ? 'Edit idea' : 'New date idea'}</h2>
+      <h2 class="sheet-title">${existing ? 'Edit idea' : logDone ? 'Add a date you went on' : 'New date idea'}</h2>
       <form id="ideaForm" class="gate" novalidate>
         <div class="field"><label for="fLink">Link (Instagram, TikTok, website…)</label>
           <div class="input-row"><input class="input" id="fLink" type="url" inputmode="url" placeholder="https://www.instagram.com/reel/…" value="${esc(f.link)}" autocomplete="off">
@@ -782,6 +858,9 @@
           <div class="input-row"><input class="input" id="fMaps" type="url" inputmode="url" placeholder="https://maps.app.goo.gl/…" value="${esc(f.maps_url || '')}" autocomplete="off">
           <button type="button" class="btn ghost" id="pasteMaps">Paste</button></div>
           <p class="hint" id="mapsHint">In Google Maps, open the place, tap Share and copy the link.</p></div>
+        <div class="field"><label for="fDeadline">Last day (optional)</label>
+          <input class="input" id="fDeadline" type="date" value="${esc(f.deadline || '')}">
+          <p class="hint">For events that close, like a seasonal ice rink or an exhibition. It shows under "Ending soon" in Plans.</p></div>
         <div class="field"><label for="fNotes">Notes (optional)</label>
           <textarea class="textarea" id="fNotes" maxlength="2000" placeholder="Opening hours, price, what to bring…">${esc(f.notes)}</textarea></div>
         <div class="field"><span class="label">Cover picture (optional)</span>
@@ -790,9 +869,9 @@
             <input id="fCover" type="file" accept="image/*" hidden>
             <button type="button" class="btn ghost" id="coverRemove" hidden>Remove</button></div>
           <p class="hint">A screenshot of the reel works well. It shows on the card so you remember what it was.</p></div>
-        ${existing ? '' : `<label class="toggle-row"><input type="checkbox" id="fIn" checked> I'm already in on this one</label>`}
+        ${existing || logDone ? '' : `<label class="toggle-row"><input type="checkbox" id="fIn" checked> I'm already in on this one</label>`}
         <p class="error" id="formErr" hidden></p>
-        <div class="btn-row stretch"><button class="btn primary" type="submit" id="saveIdea">${existing ? 'Save changes' : 'Drop it in the vial'}</button></div>
+        <div class="btn-row stretch"><button class="btn primary" type="submit" id="saveIdea">${saveLabel}</button></div>
       </form>`;
 
     const linkHint = () => {
@@ -865,18 +944,18 @@
       try {
         let cover_url = removeCover ? null : (existing ? existing.cover_url : null);
         if (coverBlob) cover_url = await store.uploadCover(coverBlob);
-        const fields = { title, link, place: $('#fPlace', body).value.trim(), maps_url, notes: $('#fNotes', body).value.trim(), jar: f.jar, vibe: f.vibe, cover_url };
+        const fields = { title, link, place: $('#fPlace', body).value.trim(), maps_url, deadline: $('#fDeadline', body).value || null, notes: $('#fNotes', body).value.trim(), jar: f.jar, vibe: f.vibe, cover_url };
         let id;
         if (existing) { await store.update(existing.id, fields); id = existing.id; toast('Saved'); }
         else {
           if ($('#fIn', body)?.checked) fields.interested = [store.meId];
           const created = await store.add(fields); id = created.id;
-          toast(`Dropped into the ${JARS[f.jar].name} vial`);
+          if (!logDone) toast(`Dropped into the ${JARS[f.jar].name} vial`);
         }
-        openSheet('detail', { id });
+        openSheet(logDone ? 'done' : 'detail', { id });
       } catch (ex) {
         err.textContent = ex.message || 'Could not save. Check your connection and try again.'; err.hidden = false;
-        btn.disabled = false; btn.textContent = existing ? 'Save changes' : 'Drop it in the vial';
+        btn.disabled = false; btn.textContent = saveLabel;
       }
     });
   }
@@ -889,7 +968,8 @@
       <h2 class="sheet-title">Pick a day</h2>
       <p class="sheet-sub">${esc(i.title)}</p>
       <form id="planForm" class="gate">
-        <div class="field"><label for="pDate">Day</label><input class="input" id="pDate" type="date" required value="${esc(def)}" min="${esc(today())}"></div>
+        <div class="field"><label for="pDate">Day</label><input class="input" id="pDate" type="date" required value="${esc(def)}" min="${esc(today())}"${hasLiveDeadline(i) ? ` max="${esc(i.deadline)}"` : ''}>
+          ${hasLiveDeadline(i) ? `<p class="hint">${esc(deadlineText(i, true))}, so pick a day before then.</p>` : ''}</div>
         <div class="field"><label for="pTime">Time (optional)</label><input class="input" id="pTime" type="time" value="${esc(i.planned_time || '')}"></div>
         <div class="btn-row stretch"><button class="btn primary" type="submit">Save the date</button></div>
       </form>`;
@@ -903,6 +983,34 @@
       } catch (ex) { toast(ex.message); }
     });
   }
+  // We went: save the day and an optional memory to Previous dates
+  function doneSheet(body, a) {
+    const i = store.find(a.id); if (!i) return closeSheet();
+    const t = today();
+    const def = i.done_on || (i.planned_for && i.planned_for <= t ? i.planned_for : t);
+    body.innerHTML = `
+      <h2 class="sheet-title">${i.status === 'done' ? 'Our memory' : 'We went!'}</h2>
+      <p class="sheet-sub">${esc(i.title)}</p>
+      <form id="doneForm" class="gate">
+        <div class="field"><label for="dDate">When did you go?</label>
+          <input class="input" id="dDate" type="date" required value="${esc(def)}" max="${esc(t)}"></div>
+        <div class="field"><label for="dMemory">What do you want to remember? (optional)</label>
+          <textarea class="textarea" id="dMemory" maxlength="1000" placeholder="The best part, something funny, what you'd do again…">${esc(i.memory || '')}</textarea></div>
+        <div class="btn-row stretch"><button class="btn primary" type="submit">Save to previous dates</button></div>
+      </form>`;
+    $('#doneForm', body).addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const d = $('#dDate', body).value; if (!d) return toast('Choose the day you went');
+      const wasDone = i.status === 'done';
+      try {
+        await store.update(i.id, { status: 'done', done_on: d, memory: $('#dMemory', body).value.trim() });
+        const n = store.ideas.filter((x) => x.status === 'done').length;
+        toast(wasDone ? 'Memory saved' : `Saved. That's ${n} ${n === 1 ? 'date' : 'dates'} together.`);
+        openSheet('detail', { id: i.id });
+      } catch (ex) { toast(ex.message || 'Could not save that'); }
+    });
+  }
+
   function nextSaturday() { const d = new Date(); d.setDate(d.getDate() + ((6 - d.getDay() + 7) % 7 || 7)); return isoOf(d); }
 
   // Sign in (live mode)
@@ -1048,6 +1156,7 @@
     if (open) { openSheet('detail', { id: open.dataset.openIdea }); return; }
     const act = e.target.closest('[data-act]')?.dataset.act;
     if (act === 'add') openSheet('edit', {});
+    if (act === 'log-past') openSheet('edit', { prefill: { logDone: true } });
     if (act === 'home') setView('home');
     if (act === 'starters') { try { await store.addStarters(); toast('Added 20 starter ideas'); } catch (ex) { toast(ex.message); } }
   });

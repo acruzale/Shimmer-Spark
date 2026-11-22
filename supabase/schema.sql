@@ -41,6 +41,9 @@ create table if not exists public.ideas (
 
 -- Added later; keeps older databases in step.
 alter table public.ideas add column if not exists maps_url text not null default '';
+alter table public.ideas add column if not exists deadline date;  -- last day an event is on
+alter table public.ideas add column if not exists done_on date;   -- the day you went
+alter table public.ideas add column if not exists memory text not null default '';  -- what you want to remember
 
 create index if not exists ideas_space_idx on public.ideas (space_id);
 
