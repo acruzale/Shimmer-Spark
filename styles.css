@@ -524,3 +524,76 @@ img { max-width: 100%; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition: none !important; }
 }
+
+/* ---------- An opened idea: a long parchment scroll (same paper as the one from a vial) ---------- */
+.sheet.as-scroll {
+  --ink: #2a1e0c; --ink-soft: #4a3a22; --ink-faint: #7a6040; --line: rgba(59,42,18,.3);
+  background: transparent; border: 0; box-shadow: none; overflow: visible;
+  padding: 0 8px;
+}
+.sheet.as-scroll .sheet-grip { display: none; }
+.sheet.as-scroll::before, .sheet.as-scroll::after { /* the rolled ends */
+  content: ""; position: absolute; left: 2px; right: 2px; height: 14px; border-radius: 8px; z-index: 2;
+  background: linear-gradient(180deg, #ecd8a8 0%, #c9a86b 55%, #a8854a 100%);
+  box-shadow: 0 3px 8px rgba(0,0,0,.45);
+}
+.sheet.as-scroll::before { top: 0; }
+.sheet.as-scroll::after { bottom: var(--safe-b); }
+.sheet.as-scroll .sheet-body {
+  margin: 7px 0 calc(7px + var(--safe-b));
+  padding: 26px 22px 24px;
+  background: linear-gradient(170deg, #f7ecd2 0%, #efe0bc 45%, #e4cf9f 100%);
+  color: var(--ink);
+  box-shadow: 0 18px 50px rgba(0,0,0,.6), 0 0 40px rgba(241,215,154,.18), inset 0 0 60px rgba(150,110,50,.18);
+  gap: 14px;
+}
+.sheet.as-scroll .sheet-close {
+  top: 22px; right: 22px; width: 36px; height: 36px; z-index: 3;
+  background: rgba(59,42,18,.1); color: #3b2a12; border: 1px solid rgba(59,42,18,.3);
+}
+.sheet.as-scroll .sheet-title { color: #2a1e0c; text-transform: none; letter-spacing: .01em; font-size: 1.75rem; margin: -4px 44px 0 0; }
+.sheet.as-scroll .chips { margin-right: 44px; }
+.sheet.as-scroll .chip {
+  color: #3b2a12; background: rgba(255,250,235,.45);
+  border-color: color-mix(in srgb, var(--c) 55%, #3b2a12 45%);
+}
+.sheet.as-scroll .r-place { color: #3b2a12; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; align-self: flex-start; overflow-wrap: anywhere; }
+.sheet.as-scroll .r-place::after { content: " ↗"; font-weight: 400; }
+.sheet.as-scroll .r-deadline { font-size: .9rem; color: #7a1f1f; font-weight: 600; margin-top: -6px; }
+.sheet.as-scroll .notes { color: #3b2a12; font-size: 1rem; }
+.sheet.as-scroll .scroll-rule {
+  border: 0; height: 10px; margin: 2px 0; width: 100%;
+  background:
+    url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 10'%3E%3Cpath d='M10 1 L14 5 L10 9 L6 5 Z' fill='none' stroke='%237a5a2a' stroke-width='1.1'/%3E%3C/svg%3E") center / 20px 10px no-repeat,
+    linear-gradient(90deg, transparent, rgba(122,90,42,.55) 15%, rgba(122,90,42,.55) calc(50% - 14px), transparent calc(50% - 14px), transparent calc(50% + 14px), rgba(122,90,42,.55) calc(50% + 14px), rgba(122,90,42,.55) 85%, transparent) center / 100% 1px no-repeat;
+}
+.sheet.as-scroll .person { background: rgba(255,250,235,.5); border-color: rgba(59,42,18,.28); }
+.sheet.as-scroll .person .p-name { color: #7a6040; }
+.sheet.as-scroll .person .p-state { color: #2a1e0c; }
+.sheet.as-scroll .person .p-state.muted { color: #7a6040; }
+.sheet.as-scroll .person.on {
+  border-color: #9a7230; box-shadow: none;
+  background: linear-gradient(180deg, rgba(241,215,154,.75), rgba(214,172,100,.55));
+}
+.sheet.as-scroll .person.on .p-state { color: #3b2a12; }
+.sheet.as-scroll .person.on .p-state::before { content: "✓ "; }
+.sheet.as-scroll .btn { color: #2a1e0c; --c: #5a4220; border-color: rgba(59,42,18,.55); }
+.sheet.as-scroll .btn:hover { background: rgba(59,42,18,.07); }
+.sheet.as-scroll .btn.ghost { color: #5a4220; border-color: rgba(59,42,18,.35); }
+.sheet.as-scroll .btn.danger { color: #9a2a2a; border-color: rgba(154,42,42,.6); }
+.sheet.as-scroll .btn.primary {
+  color: #f6ead0; text-shadow: none; border-color: transparent;
+  background: linear-gradient(180deg, rgba(255,240,200,.18), rgba(255,240,200,0) 45%), linear-gradient(180deg, #4a3518, #2e200d);
+  box-shadow: inset 0 0 0 1px rgba(241,215,154,.6), inset 0 2px 0 rgba(255,240,200,.25);
+}
+.sheet.as-scroll .match-banner {
+  background: rgba(59,42,18,.07); border: 1px solid #9a7230; color: #3b2a12;
+  box-shadow: inset 0 0 0 3px rgba(247,236,210,.9), inset 0 0 0 4px rgba(154,114,48,.45);
+}
+.sheet.as-scroll .hint, .sheet.as-scroll .scroll-added { color: #7a6040; font-size: .85rem; margin: 0; }
+.sheet.as-scroll .memory { background: rgba(59,42,18,.07); border-left-color: #9a7230; color: #2a1e0c; }
+.sheet.as-scroll .play-card { background: rgba(59,42,18,.1); border-color: rgba(59,42,18,.3); }
+.sheet.as-scroll .play-card .btn { background: rgba(247,236,210,.9); }
+.sheet.as-scroll .cover, .sheet.as-scroll .embed-wrap { border-color: rgba(59,42,18,.35); }
+.sheet.as-scroll .confirm-box { border-color: #9a2a2a; background: rgba(154,42,42,.06); }
+.sheet.as-scroll .confirm-box p { color: #2a1e0c; }

@@ -691,6 +691,8 @@
     sheet = { type, args, locked };
     $('#sheet').hidden = false; $('#sheetBackdrop').hidden = false;
     $('#sheetClose').hidden = locked;
+    // An opened idea unrolls as a long parchment scroll, like the one from a vial.
+    $('#sheet').classList.toggle('as-scroll', type === 'detail');
     renderSheet(true);
   }
   function closeSheet() {
@@ -821,22 +823,24 @@
         <div class="btn-row stretch"><button class="btn primary" id="planBtn">Pick a day</button></div>`;
     }
 
+    // Laid out like the scroll that unrolls from a vial: what, where, when, notes, then the two of you.
+    const placeHref = safeUrl(i.maps_url) || (i.place ? 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(i.place) : '');
     body.innerHTML = `
-      <h2 class="sheet-title">${esc(i.title)}</h2>
       <div class="chips"><span class="chip" style="--c:${J.color}">${esc(J.name)}</span><span class="chip" style="--c:${V.color}">${esc(V.name)}</span></div>
+      <h2 class="sheet-title">${esc(i.title)}</h2>
+      ${placeHref ? `<a class="r-place" href="${esc(placeHref)}" target="_blank" rel="noopener">${esc(i.place || 'Open in Google Maps')}</a>` : ''}
+      ${i.deadline && i.status !== 'done' ? `<span class="r-deadline">${esc(deadlineText(i, true))}</span>` : ''}
+      ${i.notes ? `<p class="notes">${esc(i.notes)}</p>` : ''}
       ${mediaHTML}
       ${media && link ? `<a class="btn ghost" href="${esc(link)}" target="_blank" rel="noopener">Open in ${esc(media.site)}</a>` : ''}
+      ${link && !media ? `<a class="r-place" href="${esc(link)}" target="_blank" rel="noopener">${esc(hostOf(link))}</a>` : ''}
+      <hr class="scroll-rule">
       ${i.status !== 'done' ? `<div class="interest">${person(m, meIn(i))}${p ? person(p, partnerIn(i)) : `<div class="person"><span class="p-name">Partner</span><span class="p-state muted">Hasn't joined yet</span></div>`}</div>
         <div class="btn-row stretch"><button class="btn ${meIn(i) ? '' : 'primary'}" data-interest="${esc(i.id)}">${meIn(i) ? "I'm in ✓ (tap to take back)" : "I'm in"}</button></div>` : ''}
       ${planBlock}
-      ${i.status === 'open' ? '<div class="btn-row"><button class="btn ghost" id="wentBtn">We already went on this date</button></div>' : ''}
-      <dl class="meta-list">
-        ${(i.place || i.maps_url) ? `<dt>Where</dt><dd><a href="${esc(safeUrl(i.maps_url) || 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(i.place))}" target="_blank" rel="noopener">${esc(i.place || 'Open in Google Maps')}</a>${safeUrl(i.maps_url) && i.place ? ' <span class="muted small">· Google Maps</span>' : ''}</dd>` : ''}
-        ${link && !media ? `<dt>Link</dt><dd><a href="${esc(link)}" target="_blank" rel="noopener">${esc(hostOf(link))}</a></dd>` : ''}
-        ${i.deadline ? `<dt>Last day</dt><dd>${deadlineTag(i) || esc(fmtDate(i.deadline, { month: 'long', day: 'numeric', year: 'numeric' }))}${hasLiveDeadline(i) ? ` <span class="muted small">${esc(deadlineText(i, true).split(' · ')[1] || '')}</span>` : ''}</dd>` : ''}
-        <dt>Added</dt><dd>${esc(nameOf(i.created_by))} · ${esc(fmtDate(isoOf(new Date(i.created_at)), { month: 'short', day: 'numeric', year: 'numeric' }))}</dd>
-      </dl>
-      ${i.notes ? `<p class="notes">${esc(i.notes)}</p>` : ''}
+      ${i.status === 'open' ? '<div class="btn-row stretch"><button class="btn ghost" id="wentBtn">We already went on this date</button></div>' : ''}
+      <hr class="scroll-rule">
+      <p class="scroll-added">Added by ${esc(nameOf(i.created_by))} · ${esc(fmtDate(isoOf(new Date(i.created_at)), { month: 'short', day: 'numeric', year: 'numeric' }))}</p>
       <div class="btn-row"><button class="btn ghost" id="editBtn">Edit</button><button class="btn danger" id="delBtn">Delete</button></div>
       <div id="confirmSlot"></div>`;
 
