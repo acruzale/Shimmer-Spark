@@ -594,9 +594,9 @@
       ${ready.length
         ? `<p class="muted small" style="margin:-8px 0 0">Pick a day and it gets a reminder.</p><div class="cards">${ready.map((i) => cardHTML(i)).join('')}</div>`
         : `<div class="empty"><p>When you both tap “I'm in” on an idea, it shows up here so you can pick a day.</p><button class="btn primary" data-act="home">Draw from a vial</button></div>`}
-      ${section(`${pn} is in. Are you?`, theirs, {})}
-      ${section(`Waiting on ${pn}`, waiting, {})}
-      <details class="memories" id="memories" ${memoriesOpen ? 'open' : ''}>
+      ${foldSection('theirs', `${pn} is in. Are you?`, theirs, 'Tap one to say if you are in too.')}
+      ${foldSection('waiting', `Waiting on ${pn}`, waiting, `Ideas you said yes to. They move up once ${pn} is in too.`)}
+      <details class="memories" data-fold="memories" ${foldOpen.memories ? 'open' : ''}>
         <summary>
           <span class="memories-title">Previous dates</span>
           <span class="memories-count">${done.length
@@ -615,9 +615,24 @@
         </div>
       </details>
     </div>`;
-    $('#memories', el).addEventListener('toggle', (e) => { memoriesOpen = e.target.open; });
+    $$('details[data-fold]', el).forEach((d) => d.addEventListener('toggle', () => { foldOpen[d.dataset.fold] = d.open; }));
   }
-  let memoriesOpen = false; // Previous dates starts closed; stays as you left it while the app is open
+  // Tap-to-open sections in Plans. These are the starting states; they stay as you leave them while the app is open.
+  const foldOpen = { theirs: true, waiting: false, memories: false };
+  function foldSection(key, title, items, hint) {
+    if (!items.length) return '';
+    return `<details class="memories" data-fold="${key}" ${foldOpen[key] ? 'open' : ''}>
+      <summary>
+        <span class="memories-title">${esc(title)}</span>
+        <span class="memories-count"><b>${items.length}</b> ${items.length === 1 ? 'idea' : 'ideas'}</span>
+        <span class="memories-chevron" aria-hidden="true"></span>
+      </summary>
+      <div class="memories-body">
+        ${hint ? `<p class="muted small" style="margin:0">${esc(hint)}</p>` : ''}
+        <div class="cards">${items.map((i) => cardHTML(i)).join('')}</div>
+      </div>
+    </details>`;
+  }
 
   function renderUs() {
     const el = $('#panel-us');
