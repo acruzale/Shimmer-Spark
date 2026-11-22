@@ -730,3 +730,12 @@ button.person.mine:focus-visible { outline: 2px solid var(--brass-hi); outline-o
 }
 .select-bar .confirm-box { flex: 1 1 100%; background: rgba(154,42,42,.12); }
 .sel-count { color: var(--ink-soft); font-size: .9rem; }
+
+/* "Or pick one yourself" / All: heading with Select on the right */
+.pick-head { display: flex; align-items: center; justify-content: space-between; gap: 8px 10px; flex-wrap: wrap; margin-top: 6px; }
+.pick-title {
+  margin: 0; font-family: var(--font-display); font-weight: 400; letter-spacing: .14em; text-transform: uppercase;
+  font-size: .9rem; color: var(--ink-soft);
+}
+.sel-toggles { display: flex; gap: 8px; margin-left: auto; }
+.sel-btn { min-height: 38px; padding: 8px 14px 6px; font-size: .78rem; }

@@ -832,7 +832,7 @@
 
   // The vial card's tabs: All, then the three vials. All lists every idea (past dates stay in Plans).
   const ALL_VIAL = { name: 'All ideas', short: 'All', color: '#8fd3ff', hi: '#d4f0ff' };
-  const VIAL_TAB_ORDER = ['all', ...Object.keys(JARS)];
+  const VIAL_TAB_ORDER = [...Object.keys(JARS), 'all']; // All sits on the far right
   const vialInfo = (k) => (k === 'all' ? ALL_VIAL : JARS[k]);
   function vialTabsHTML(current) {
     return `<div class="vial-tabs" role="tablist" aria-label="Vials">${VIAL_TAB_ORDER.map((k) => { const V = vialInfo(k); return `<button type="button" role="tab" class="vial-tab" style="--c:${V.color}" data-jar="${k}" aria-selected="${current === k}" tabindex="${current === k ? 0 : -1}">${esc(V.short)}</button>`; }).join('')}</div>`;
@@ -853,64 +853,75 @@
     dragScroll($('.vial-tabs', body));
   }
 
-  // All ideas, with select mode for deleting several at once.
-  function allSheet(body, a) {
-    const order = Object.keys(JARS);
-    const list = store.ideas.filter((i) => i.status !== 'done')
-      .sort((x, y) => order.indexOf(x.jar) - order.indexOf(y.jar) || (x.created_at || '').localeCompare(y.created_at || ''));
+  // Select several ideas and delete them together. Used by All and by each vial's "Or pick one yourself".
+  // State lives on the card's args: a.selecting, a.selected (ids), a.confirm.
+  function selectUI(a, list) {
     a.selected = (a.selected || []).filter((id) => list.some((i) => i.id === id));
-    const picked = new Set(a.selected);
-    const n = picked.size;
-    const selectable = (i) => {
+    const picked = new Set(a.selected); const n = picked.size;
+    const card = (i) => {
+      if (!a.selecting) return cardHTML(i);
       const on = picked.has(i.id);
       return cardHTML(i)
         .replace('class="card', `class="card selectable${on ? ' on' : ''}`)
         .replace(`data-open-idea="${esc(i.id)}"`, `data-select-id="${esc(i.id)}" aria-pressed="${on}"`)
         .replace('<span class="card-body">', '<span class="card-check" aria-hidden="true"></span><span class="card-body">');
     };
+    return {
+      toggles: a.selecting
+        ? `<button class="btn ghost sel-btn" data-sel="all">${n === list.length ? 'Clear all' : `Select all (${list.length})`}</button><button class="btn ghost sel-btn" data-sel="cancel">Cancel</button>`
+        : '<button class="btn sel-btn" data-sel="start">Select</button>',
+      cards: `<div class="cards">${list.map(card).join('')}</div>`,
+      bar: !a.selecting ? '' : `<div class="select-bar">${a.confirm && n
+        ? `<div class="confirm-box"><p style="margin:0">Delete ${n} ${n === 1 ? 'idea' : 'ideas'} for both of you? This can't be undone.</p>
+            <div class="btn-row"><button class="btn danger" data-sel="yes">Delete ${n === 1 ? 'it' : 'them'}</button><button class="btn ghost" data-sel="no">Keep them</button></div></div>`
+        : `<span class="sel-count">${n ? `${n} selected` : 'Tap ideas to select them'}</span>
+           <button class="btn danger" data-sel="delete" ${n ? '' : 'disabled'}>Delete${n ? ` ${n}` : ''}</button>`}</div>`,
+    };
+  }
+  function bindSelect(body, a, list) {
+    const again = () => renderSheet();
+    const reset = () => { a.selecting = false; a.selected = []; a.confirm = false; };
+    const act = {
+      start: () => { reset(); a.selecting = true; },
+      cancel: reset,
+      all: () => { a.selected = a.selected.length === list.length ? [] : list.map((i) => i.id); a.confirm = false; },
+      delete: () => { a.confirm = true; },
+      no: () => { a.confirm = false; },
+    };
+    $$('[data-sel]', body).forEach((btn) => btn.addEventListener('click', async () => {
+      const k = btn.dataset.sel;
+      if (k === 'yes') {
+        btn.disabled = true; btn.textContent = 'Deleting…';
+        const ids = [...a.selected]; reset();
+        try { await store.removeMany(ids); toast(`Deleted ${ids.length} ${ids.length === 1 ? 'idea' : 'ideas'}`); }
+        catch (ex) { toast(ex.message || 'Could not delete them'); }
+        again(); return;
+      }
+      act[k]?.(); again();
+    }));
+    $$('[data-select-id]', body).forEach((c) => c.addEventListener('click', () => {
+      const id = c.dataset.selectId;
+      a.selected = a.selected.includes(id) ? a.selected.filter((x) => x !== id) : [...a.selected, id];
+      a.confirm = false; again();
+    }));
+  }
+
+  // All ideas from the three vials (past dates stay in Plans).
+  function allSheet(body, a) {
+    const order = Object.keys(JARS);
+    const list = store.ideas.filter((i) => i.status !== 'done')
+      .sort((x, y) => order.indexOf(x.jar) - order.indexOf(y.jar) || (x.created_at || '').localeCompare(y.created_at || ''));
+    const ui = selectUI(a, list);
     body.innerHTML = cardTop({
       pic: 'all', color: ALL_VIAL.color, tabs: vialTabsHTML('all'),
       title: ALL_VIAL.name, titleColor: ALL_VIAL.hi,
       sub: list.length ? `Every idea in your three vials (${list.length}).` : 'Every idea in your three vials.',
-    }) + (list.length ? `
-      <div class="select-tools">
-        ${a.selecting
-          ? `<button class="btn ghost" id="selAll">${n === list.length ? 'Clear all' : `Select all (${list.length})`}</button>
-             <button class="btn ghost" id="selCancel">Cancel</button>`
-          : `<span class="muted small">Tap an idea to open it.</span><button class="btn" id="selStart">Select</button>`}
-      </div>
-      <div class="cards">${list.map((i) => (a.selecting ? selectable(i) : cardHTML(i))).join('')}</div>
-      ${a.selecting ? `<div class="select-bar">
-        ${a.confirm && n
-          ? `<div class="confirm-box"><p style="margin:0">Delete ${n} ${n === 1 ? 'idea' : 'ideas'} for both of you? This can't be undone.</p>
-              <div class="btn-row"><button class="btn danger" id="delYes">Delete ${n === 1 ? 'it' : 'them'}</button><button class="btn ghost" id="delNo">Keep them</button></div></div>`
-          : `<span class="sel-count">${n ? `${n} selected` : 'Tap ideas to select them'}</span>
-             <button class="btn danger" id="delSel" ${n ? '' : 'disabled'}>Delete${n ? ` ${n}` : ''}</button>`}
-      </div>` : ''}`
-      : `<div class="empty"><p>No ideas yet. Open a vial and add your first one.</p></div>`);
+    }) + (list.length
+      ? `<div class="pick-head">${a.selecting ? '' : '<span class="muted small">Tap an idea to open it.</span>'}<div class="sel-toggles">${ui.toggles}</div></div>${ui.cards}${ui.bar}`
+      : '<div class="empty"><p>No ideas yet. Open a vial and add your first one.</p></div>');
     setSheetGlow(ALL_VIAL.color);
     bindVialTabs(body, a);
-    const again = () => renderSheet();
-    $('#selStart', body)?.addEventListener('click', () => { a.selecting = true; a.selected = []; a.confirm = false; again(); });
-    $('#selCancel', body)?.addEventListener('click', () => { a.selecting = false; a.selected = []; a.confirm = false; again(); });
-    $('#selAll', body)?.addEventListener('click', () => { a.selected = n === list.length ? [] : list.map((i) => i.id); a.confirm = false; again(); });
-    $$('[data-select-id]', body).forEach((c) => c.addEventListener('click', () => {
-      const id = c.dataset.selectId;
-      a.selected = picked.has(id) ? a.selected.filter((x) => x !== id) : [...a.selected, id];
-      a.confirm = false; again();
-    }));
-    $('#delSel', body)?.addEventListener('click', () => { a.confirm = true; again(); });
-    $('#delNo', body)?.addEventListener('click', () => { a.confirm = false; again(); });
-    $('#delYes', body)?.addEventListener('click', async (e) => {
-      e.target.disabled = true; e.target.textContent = 'Deleting…';
-      const ids = [...a.selected];
-      try {
-        a.selecting = false; a.selected = []; a.confirm = false;
-        await store.removeMany(ids);
-        toast(`Deleted ${ids.length} ${ids.length === 1 ? 'idea' : 'ideas'}`);
-        renderSheet();
-      } catch (ex) { toast(ex.message || 'Could not delete them'); renderSheet(); }
-    });
+    bindSelect(body, a, list);
   }
 
   // Draw from a vial
@@ -923,6 +934,7 @@
     const pool = drawPool(a);
     const res = a.resultId && store.ideas.find((i) => i.id === a.resultId);
     const vibes = [['any', 'Any vibe', J.color], ...J.vibes.map((v) => [v, VIBES[v].name, VIBES[v].color])];
+    const pickUI = selectUI(a, pool);
     body.innerHTML = `
       <div class="sheet-head" style="--head-img:url('${picUrl(a.vibe === 'any' ? a.jar : a.vibe)}');--c:${J.color}">
         ${vialTabsHTML(a.jar)}
@@ -943,14 +955,17 @@
       </div>
       <div class="btn-row stretch"><button class="btn add-idea" data-act="add-jar"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>Add an idea</button></div>
       ${pool.length ? '' : `<div class="empty"><p>This vial is empty for that vibe.</p></div>`}
-      ${pool.length ? `<h3 style="margin:6px 0 0;font-family:var(--font-display);font-weight:400;letter-spacing:.14em;text-transform:uppercase;font-size:.9rem;color:var(--ink-soft)">Or pick one yourself (${pool.length})</h3>
-        <div class="cards">${pool.map((i) => cardHTML(i)).join('')}</div>` : ''}`;
+      ${pool.length ? `<div class="pick-head"><h3 class="pick-title">Or pick one yourself (${pool.length})</h3><div class="sel-toggles">${pickUI.toggles}</div></div>
+        ${pickUI.cards}${pickUI.bar}` : ''}`;
     setVialLevel('big', openIdeas(a.jar).length);
     setSheetGlow(J.color);
     // Move between vials without closing: tap a tab, swipe the picture, or use the arrow keys.
     bindVialTabs(body, a);
-    $$('.chip[data-vibe]', body).forEach((b) => b.addEventListener('click', () => { a.vibe = b.dataset.vibe; a.resultId = null; renderSheet(true); }));
-    $('#drawBoth', body).addEventListener('change', (e) => { a.bothOnly = e.target.checked; a.resultId = null; renderSheet(true); });
+    bindSelect(body, a, pool);
+    // A new vibe or filter shows a different list, so any selection starts over.
+    const clearSel = () => { a.selecting = false; a.selected = []; a.confirm = false; };
+    $$('.chip[data-vibe]', body).forEach((b) => b.addEventListener('click', () => { a.vibe = b.dataset.vibe; a.resultId = null; clearSel(); renderSheet(true); }));
+    $('#drawBoth', body).addEventListener('change', (e) => { a.bothOnly = e.target.checked; a.resultId = null; clearSel(); renderSheet(true); });
     $('[data-act="add-jar"]', body)?.addEventListener('click', () => openSheet('edit', { prefill: { jar: a.jar, vibe: a.vibe === 'any' ? J.vibes[0] : a.vibe } }, false, { type: 'draw', args: a }));
     $('#shakeBtn', body).addEventListener('click', () => {
       const p = drawPool(a); if (!p.length) return;
