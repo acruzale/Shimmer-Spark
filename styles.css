@@ -319,14 +319,15 @@ img { max-width: 100%; }
   animation: sheetUp .3s cubic-bezier(.2,.85,.25,1);
 }
 @keyframes sheetUp { from { transform: translate(-50%, 40px); opacity: 0; } }
-.sheet-grip { width: 44px; height: 4px; border-radius: 4px; background: var(--line); margin: 10px auto 0; flex: none; }
-.sheet-close {
-  position: absolute; top: 8px; right: 10px; width: 40px; height: 40px; border-radius: 50%;
-  background: transparent; border: 0; color: var(--ink-soft); font-size: 1.7rem; line-height: 1;
+.sheet-close { /* a drawn X, centred exactly in its circle */
+  position: absolute; top: 12px; right: 12px; width: 38px; height: 38px; border-radius: 50%;
+  display: grid; place-items: center; padding: 0;
+  background: transparent; border: 0; color: var(--ink-soft);
 }
+.sheet-close svg { display: block; }
 .sheet-body {
   overflow-y: auto; -webkit-overflow-scrolling: touch;
-  padding: 10px var(--gutter-r) calc(24px + var(--safe-b)) var(--gutter-l);
+  padding: 22px var(--gutter-r) calc(24px + var(--safe-b)) var(--gutter-l);
   display: flex; flex-direction: column; gap: 16px;
 }
 .sheet-body > * { flex-shrink: 0; }
@@ -341,10 +342,10 @@ img { max-width: 100%; }
   --c: var(--brass);
   position: relative; overflow: hidden;
   min-height: 210px;
-  margin: -14px calc(-1 * var(--gutter-r)) -4px calc(-1 * var(--gutter-l));
+  margin: -22px calc(-1 * var(--gutter-r)) -4px calc(-1 * var(--gutter-l)); /* fills to the panel's top edge */
   padding: 0 var(--gutter-r) 12px var(--gutter-l);
   display: flex; flex-direction: column; justify-content: flex-end; gap: 8px;
-  border-radius: 18px 18px 0 0;
+  border-radius: 17px 17px 0 0;
   background: radial-gradient(120% 90% at 50% 0%, color-mix(in srgb, var(--c) 35%, transparent), transparent 70%);
 }
 .vibe-banner img {
@@ -535,7 +536,6 @@ img { max-width: 100%; }
   background: transparent; border: 0; box-shadow: none; overflow: visible;
   padding: 0 8px;
 }
-.sheet.as-scroll .sheet-grip { display: none; }
 .sheet.as-scroll::before, .sheet.as-scroll::after { /* the rolled ends */
   content: ""; position: absolute; left: 2px; right: 2px; height: 14px; border-radius: 8px; z-index: 2;
   background: linear-gradient(180deg, #ecd8a8 0%, #c9a86b 55%, #a8854a 100%);
