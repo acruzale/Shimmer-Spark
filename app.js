@@ -359,7 +359,7 @@
     const svg = $('#vials');
     svg.innerHTML = Object.entries(VIAL_POS).map(([k, p], i) => {
       const y = stringY(p.x);
-      return `<g transform="translate(${p.x} ${y.toFixed(1)})">
+      return `<g transform="translate(${p.x} ${y.toFixed(1)})"><g class="vial-scale">
         <g class="vial-hit" data-jar="${k}" tabindex="0" role="button" aria-label="${esc(JARS[k].name)} vial: draw a date">
           <animateTransform attributeName="transform" type="rotate" values="-2.4 0 0;2.4 0 0;-2.4 0 0" dur="${(5.2 + i * 0.9).toFixed(1)}s" repeatCount="indefinite"/>
           <rect x="-62" y="0" width="124" height="${p.wire + 262}" fill="transparent"/>
@@ -367,7 +367,7 @@
           <circle cx="0" cy="0" r="3" fill="#3b3024"/>
           <g transform="translate(0 ${p.wire - 15})">${vialMarkup(k, 'v' + k)}</g>
           <text class="vial-label" x="0" y="${p.wire + 212}" text-anchor="middle" font-size="19" fill="#f4e6c8" stroke="rgba(0,0,0,.75)" stroke-width="4" paint-order="stroke">${esc(JARS[k].short)}</text>
-        </g></g>`;
+        </g></g></g>`;
     }).join('');
     $$('.vial-hit', svg).forEach((g) => {
       const open = () => openSheet('draw', { jar: g.dataset.jar, vibe: 'any', bothOnly: false, resultId: null });
@@ -376,11 +376,21 @@
     });
   }
   function updateVials() {
-    for (const k of Object.keys(JARS)) {
-      const n = openIdeas(k).length;
-      setVialLevel('v' + k, n);
-      const t = document.getElementById('count-' + k);
-    }
+    for (const k of Object.keys(JARS)) setVialLevel('v' + k, 0);
+    layoutVials();
+  }
+  // On wide, short screens the picture scales up to fill the width, which would make the vials hang down
+  // over the title. Shrink them around their hook (they stay on the string) so they end above the title.
+  function layoutVials() {
+    const svg = $('#vials'); const copy = $('#homeCopy');
+    if (!svg || !copy) return;
+    const k = Math.max(innerWidth / 1500, innerHeight / 1000); // picture scale (cover, anchored to the top)
+    const copyTop = copy.getBoundingClientRect().top;
+    const hookY = 120 * k;          // the lowest hook on the string, in screen pixels
+    const vialH = (62 + 250) * k;   // longest wire + vial + label, in screen pixels
+    const room = copyTop - 14 - hookY;
+    const s = Math.max(0.45, Math.min(1, room / vialH));
+    $$('.vial-scale', svg).forEach((g) => g.setAttribute('transform', `scale(${s.toFixed(3)})`));
   }
 
   // ---------------------------------------------------------------- fireflies
@@ -1143,6 +1153,7 @@
   function renderAll() {
     updateVials();
     renderToday();
+    layoutVials();
     if (view === 'ideas') renderIdeasList();
     if (view === 'plans') renderPlans();
     if (view === 'us' && !document.activeElement?.matches('#myName')) renderUs();
@@ -1193,6 +1204,8 @@
   async function boot() {
     buildVials();
     startFireflies();
+    layoutVials();
+    addEventListener('resize', layoutVials);
     store.onChange(renderAll);
     $('#demoChip').hidden = LIVE;
     try { afterAuth(await store.start()); }

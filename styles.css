@@ -50,7 +50,7 @@ img { max-width: 100%; }
 .scene-img, .fireflies, .vials {
   position: absolute; inset: 0; width: 100%; height: 100%;
 }
-.scene-img { object-fit: cover; object-position: center; filter: saturate(1.05); }
+.scene-img { object-fit: cover; object-position: center top; filter: saturate(1.05); } /* top-anchored so the light string and vials stay in view */
 .scene::after { /* warm vignette so text reads */
   content: ""; position: absolute; inset: 0; pointer-events: none;
   background:
@@ -84,9 +84,10 @@ img { max-width: 100%; }
   margin: 0;
   font-family: var(--font-display);
   font-weight: 400;
-  font-size: clamp(1.75rem, 7.2vw, 4rem);
+  /* "SHIMMER & SPARK" is ~10.9em wide: fit it to the screen width (minus gutters) and to short screens. */
+  font-size: clamp(1.3rem, min(calc((100vw - 40px) / 11.4), 9vh), 4rem);
   letter-spacing: 0.14em;
-  text-wrap: balance;
+  text-wrap: balance; max-width: 100%;
   text-transform: uppercase;
   line-height: 1;
   background: linear-gradient(180deg, var(--brass-hi) 0%, #d9b06a 45%, #8c6430 60%, #e3c07e 100%);
