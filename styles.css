@@ -765,3 +765,5 @@ button.person.mine:focus-visible { outline: 2px solid var(--brass-hi); outline-o
 .sheet.as-scroll .talk-banner { background: rgba(184,51,31,.08); border-color: #b8331f; color: #7a1a0c; }
 .sheet.as-scroll .not-for-me { border-color: rgba(154,42,30,.55); color: #9a2a1e; }
 .sheet.as-scroll .not-for-me:focus-visible { outline-color: #9a2a1e; }
+.draw-result .not-for-me { align-self: center; margin-top: 2px; border-color: rgba(154,42,30,.55); color: #9a2a1e; }
+.draw-result .not-for-me.on { background: rgba(230,110,85,.25); border-color: #b8331f; color: #7a1a0c; font-weight: 600; }

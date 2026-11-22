@@ -1024,10 +1024,12 @@
         <button class="btn primary" data-open-idea="${esc(i.id)}">Open</button>
         <button class="btn" data-interest="${esc(i.id)}">${meIn(i) ? "I'm in ✓" : "I'm in"}</button>
       </div>
+      <button type="button" class="not-for-me${meOut(i) ? ' on' : ''}" data-decline="${esc(i.id)}" aria-pressed="${meOut(i)}">${meOut(i) ? '✗ Not for me · tap to take back' : 'Not for me'}</button>
     </div>`;
   }
   function bindResult(body) {
     $$('[data-interest]', body).forEach((b) => b.addEventListener('click', () => toggleInterest(b.dataset.interest)));
+    $$('[data-decline]', body).forEach((b) => b.addEventListener('click', () => toggleDecline(b.dataset.decline)));
   }
 
   async function toggleInterest(id) {
@@ -1086,9 +1088,10 @@
     } else if (both) {
       planBlock = `<div class="match-banner">You're both in</div>
         <div class="btn-row stretch"><button class="btn primary" id="planBtn">Pick a day</button></div>`;
-    } else if (anyOut(i)) {
+    }
+    if (i.status !== 'done' && anyOut(i)) {
       planBlock = `<div class="talk-banner">${meOut(i) && partnerOut(i) ? 'Neither of you is keen' : meOut(i) ? 'You said not for you' : `${esc(p?.display_name || 'Your partner')} isn't keen`}.
-        Talk about it, then keep it or delete it.</div>`;
+        Talk about it, then keep it or delete it.</div>` + planBlock;
     }
 
     // Laid out like the scroll that unrolls from a vial: what, where, when, notes, then the two of you.
@@ -1104,7 +1107,7 @@
       ${link && !media ? `<a class="r-place" href="${esc(link)}" target="_blank" rel="noopener">${esc(hostOf(link))}</a>` : ''}
       <hr class="scroll-rule">
       ${i.status !== 'done' ? `<div class="interest">${myBox(m, meIn(i), meOut(i))}${p ? person(p, partnerIn(i), partnerOut(i)) : `<div class="person"><span class="p-name">Partner</span><span class="p-state muted">Hasn't joined yet</span></div>`}</div>
-        ${i.status === 'open' && !meOut(i) ? `<button type="button" class="not-for-me" data-decline="${esc(i.id)}">Not for me</button>` : ''}` : ''}
+        ${!meOut(i) ? `<button type="button" class="not-for-me" data-decline="${esc(i.id)}">Not for me</button>` : ''}` : ''}
       ${planBlock}
       ${i.status === 'open' ? '<div class="btn-row stretch"><button class="btn ghost" id="wentBtn">We already went on this date</button></div>' : ''}
       <hr class="scroll-rule">
