@@ -16,15 +16,15 @@
       stops: ['#e8186f', '#f47cf6', '#ffdcfb', '#8a0030', '#3d1c45'], vibes: ['cozy', 'culinary', 'projects'] },
   };
   const VIBES = {
-    chill:           { name: 'Chill & relaxed', color: '#d9956a' },
-    hiking:          { name: 'Hiking', color: '#3fbf6f' },
-    active:          { name: 'Active', color: '#ff4f8b' },
-    daytrip:         { name: 'Day trips', color: '#6ff0de' },
-    leisure:         { name: 'Leisure & entertainment', color: '#8aa0ff' },
-    'indoor-active': { name: 'Active & interactive', color: '#a87bc4' },
-    cozy:            { name: 'Chill & cozy', color: '#f47cf6' },
-    culinary:        { name: 'Culinary', color: '#ffb48a' },
-    projects:        { name: 'Projects', color: '#c9a15a' },
+    chill:           { name: 'Chill & relaxed', color: '#e3a948' }, // The Last Drop sign
+    hiking:          { name: 'Hiking', color: '#7fdc5f' }, // hoverboard streaks
+    active:          { name: 'Active', color: '#a63bf2' }, // shimmer vial
+    daytrip:         { name: 'Day trips', color: '#3f7cc4' }, // Jinx's hair
+    leisure:         { name: 'Leisure & entertainment', color: '#6a52b0' }, // Caitlyn's top
+    'indoor-active': { name: 'Active & interactive', color: '#4f49c8' }, // the starry void
+    cozy:            { name: 'Chill & cozy', color: '#c23a5a' }, // Vi's hair
+    culinary:        { name: 'Culinary', color: '#d89a5c' }, // Mel's gold
+    projects:        { name: 'Projects', color: '#f0cf72' }, // Heimerdinger's hair
   };
   // Banner pictures live in assets/vibes/<vibe>.jpg (and <jar>.jpg for "Any vibe"). Missing ones are skipped.
   // VIBE_FOCUS picks which part of a picture stays in view when it is cropped to the banner.
